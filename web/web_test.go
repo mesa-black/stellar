@@ -129,6 +129,9 @@ func TestHomeEmpty(t *testing.T) {
 	if strings.Contains(rec.Body.String(), `role="img"`) {
 		t.Error("the empty page draws a constellation")
 	}
+	if !strings.Contains(rec.Body.String(), "The names are invented") {
+		t.Error("the empty page does not say the names are invented")
+	}
 	if !strings.Contains(rec.Body.String(), `class="star"`) {
 		t.Error("the title has lost its star")
 	}

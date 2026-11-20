@@ -61,6 +61,7 @@
     {{end}}
     <div class="words">
     <p>A website proves who it is with a public key. Its fingerprint is 43 characters nobody reads. Stellar draws those characters as a constellation with a name, so a change is something you can see.</p>
+    <p>The names are invented, and so are the drawings: none is a real constellation. The sky has only 88 of those, far too few for every key to have its own, and a name anybody could pick would prove nothing. So each name is built from the key itself, with a Latin sound, to be said aloud: "on my side your site is {{if .SelfName}}{{.SelfName}}{{else}}Merebis Vovinus{{end}}; and on yours?"</p>
     <ol>
       <li>Stellar asks the site for its certificate and hashes the public key inside.</li>
       <li>The hash decides every star: where it sits, how bright it is, what it joins.</li>
