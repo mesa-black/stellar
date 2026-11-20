@@ -179,3 +179,9 @@ c := stellar.New(key.Digest)
 fmt.Print(c.Text(true))               // terminal
 svg := c.SVG(640, key.Fingerprint())  // SVG document
 ```
+
+## License
+
+Stellar is released under the [MIT License](LICENSE).
+
+The typefaces in `web/static/fonts/` are not part of Stellar and keep their own licence, the SIL Open Font License: see `web/static/fonts/NOTICE.txt`.
