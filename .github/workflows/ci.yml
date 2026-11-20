@@ -1,0 +1,82 @@
+# What runs on every push, and what a push to main delivers.
+#
+# Two jobs. `test` is the build stage of the Dockerfile and nothing else: the
+# format check, vet and the tests run there, in the very toolchain the image
+# is compiled with, so the runner needs Docker and no Go of its own. `image`
+# publishes what was tested, for the cluster to pull.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Format, vet and tests
+    runs-on: ubuntu-26.04
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v7
+      -
+        # The build stage fails if a file is not gofmt-ed, if vet complains or
+        # if a test fails. Among the tests: the 32 reference constellations of
+        # testdata/v1.json, which other implementations reproduce — a change
+        # that moved one star would stop here.
+        name: Run the checks in the build stage
+        run: docker build --target build .
+
+  # ---------------------------------------------------------------- delivery
+  # Only for a push to main, and only once the checks pass.
+  image:
+    name: Image
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    # The repository's default token is read-only; this job alone may write
+    # packages. No personal token involved: the image is pushed by the
+    # workflow's own GITHUB_TOKEN, which expires with the run.
+    permissions:
+      contents: read
+      packages: write
+    # The digest of what was pushed: the deployment pins it next to the tag.
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v7
+      -
+        name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+      -
+        name: Log in to ghcr.io
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        # Two architectures without QEMU: the build stage runs on the runner's
+        # own platform and cross-compiles, the final stage only copies files.
+        #
+        # Tagged with the full commit SHA, never `latest`: the deployment
+        # repository names exactly which build runs, and going back is a revert.
+        name: Build and push
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/mesa-black/stellar:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.description=Stellar, a public key drawn as a constellation: the website, one static binary
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

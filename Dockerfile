@@ -12,14 +12,22 @@
 # a container engine and nothing else.
 
 # ------------------------------------------------------------------ build
-FROM docker.io/library/golang:1.27-alpine AS build
+# On the BUILD machine's architecture ($BUILDPLATFORM), whatever the image is
+# for: Go cross-compiles, so an image for amd64 and arm64 is two compilations
+# on one machine and nothing runs under emulation. The checks run once, on the
+# machine that builds.
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27-alpine AS build
 WORKDIR /src
 # No dependency outside the standard library: go.mod is the whole manifest.
 COPY go.mod ./
 COPY . .
 # The image is not built if the checks fail.
 RUN test -z "$(gofmt -l .)" && go vet ./... && go test ./...
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/stellar ./cmd/stellar
+# Set by the builder to the platform the image is for; empty means this one.
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -trimpath -ldflags="-s -w" -o /out/stellar ./cmd/stellar
 
 # ------------------------------------------------------------------ run
 # Nothing but the binary and the root certificates it verifies sites against:
