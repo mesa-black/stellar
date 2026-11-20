@@ -138,7 +138,11 @@ func TestHomeEmpty(t *testing.T) {
 	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "default-src 'none'") || !strings.Contains(csp, "font-src 'self'") {
 		t.Errorf("CSP = %q", csp)
 	}
-	for _, link := range []string{`href="https://github.com/mesa-black/sablier"`, `href="https://mesa.black" rel="noopener">BlackMesa Labs<`} {
+	// Both leave the site, so both open in another window.
+	for _, link := range []string{
+		`href="https://github.com/mesa-black/sablier" rel="noopener noreferrer" target="_blank">Sablier<`,
+		`href="https://mesa.black" rel="noopener noreferrer" target="_blank">BlackMesa Labs<`,
+	} {
 		if !strings.Contains(rec.Body.String(), link) {
 			t.Errorf("the footer lacks %s", link)
 		}
