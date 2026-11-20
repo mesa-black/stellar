@@ -131,7 +131,7 @@ func TestHomeEmpty(t *testing.T) {
 	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "default-src 'none'") || !strings.Contains(csp, "font-src 'self'") {
 		t.Errorf("CSP = %q", csp)
 	}
-	for _, link := range []string{`href="https://github.com/mesa-black/sablier"`, `href="https://mesa.black"`} {
+	for _, link := range []string{`href="https://github.com/mesa-black/sablier"`, `href="https://mesa.black" rel="noopener">BlackMesa Labs<`} {
 		if !strings.Contains(rec.Body.String(), link) {
 			t.Errorf("the footer lacks %s", link)
 		}
