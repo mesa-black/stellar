@@ -637,7 +637,7 @@ func TestStatic(t *testing.T) {
 	for _, p := range []string{
 		"/static/app.css", "/static/app.js", "/static/favicon.svg", "/healthz",
 		"/static/fonts/bricolage-grotesque-300-normal.woff2", "/static/fonts/bricolage-grotesque-400-normal.woff2",
-		"/static/fonts/ibm-plex-mono-500-normal.woff2",
+		"/static/fonts/ibm-plex-mono-500-normal.woff2", "/static/fonts/instrument-serif-400-italic.woff2",
 	} {
 		if rec := get(t, h, p); rec.Code != 200 {
 			t.Errorf("%s: status %d", p, rec.Code)

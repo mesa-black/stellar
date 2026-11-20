@@ -1,9 +1,11 @@
-/* The typefaces of Observatoire, served from here: nothing loads from elsewhere. */
+/* The typefaces of Observatoire, and the serif of mesa.black for the tagline,
+   served from here: nothing loads from elsewhere. */
 @font-face { font-family: "Bricolage"; src: url("fonts/bricolage-grotesque-300-normal.woff2") format("woff2"); font-weight: 300; font-display: swap; }
 @font-face { font-family: "Bricolage"; src: url("fonts/bricolage-grotesque-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Bricolage"; src: url("fonts/bricolage-grotesque-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Plex Mono"; src: url("fonts/ibm-plex-mono-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Plex Mono"; src: url("fonts/ibm-plex-mono-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+@font-face { font-family: "Instrument Serif"; src: url("fonts/instrument-serif-400-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; font-display: swap; }
 
 :root {
   --night: #05060f;
@@ -20,6 +22,7 @@
   --system: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --sans: "Bricolage", "Avenir Next", "Segoe UI", system-ui, sans-serif;
   --mono: "Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
   color-scheme: dark;
 }
 
@@ -65,7 +68,8 @@ header { padding: 40px 0 24px; text-align: center; }
   fill: #fff;
   filter: drop-shadow(0 0 .18em #ffffff99);
 }
-.tagline { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+/* Set like the tagline of mesa.black: its serif, in italic. */
+.tagline { margin: 6px 0 0; color: var(--muted); font: italic 400 19px/1.45 var(--serif); }
 
 label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
 label code, .about code { font: .9em var(--mono); }
