@@ -118,6 +118,10 @@ podman build -t stellar .                          # or: docker build -t stellar
 podman run --rm -p 127.0.0.1:8099:8080 stellar     # or: docker run  --rm -p 127.0.0.1:8099:8080 stellar
 ```
 
+### Deployment
+
+The site runs at <https://stellar.mesa.black>. A push to `main` is a deployment: the CI runs the checks, publishes `ghcr.io/mesa-black/stellar:<commit>` for amd64 and arm64, then writes that tag and its digest into the deployment repository, which Argo CD applies to the cluster. The CI never talks to the cluster, and rolling back is reverting that commit.
+
 ## What is hashed
 
 | Input | Digest |

@@ -1,9 +1,10 @@
 # What runs on every push, and what a push to main delivers.
 #
-# Two jobs. `test` is the build stage of the Dockerfile and nothing else: the
+# Three jobs. `test` is the build stage of the Dockerfile and nothing else: the
 # format check, vet and the tests run there, in the very toolchain the image
 # is compiled with, so the runner needs Docker and no Go of its own. `image`
-# publishes what was tested, for the cluster to pull.
+# publishes what was tested, and `deploy` tells the deployment repository
+# which image to run.
 name: CI
 
 on:
@@ -80,3 +81,66 @@ jobs:
             org.opencontainers.image.description=Stellar, a public key drawn as a constellation: the website, one static binary
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # GitOps: CI never talks to the cluster. It changes one line in the
+  # deployment repository, and Argo CD, which watches that repository, does the
+  # rest. A deployment is therefore a commit there: history, review, and
+  # `git revert` as the rollback.
+  deploy:
+    name: Deploy via Argo CD
+    needs: image
+    runs-on: ubuntu-26.04
+    # Two pushes in a row must not race each other's commit. Queued, never
+    # cancelled: a cancelled deploy would leave the older image running.
+    concurrency:
+      group: deploy-stellar
+      cancel-in-progress: false
+    steps:
+      -
+        # A deploy key with write access to k3s-stack, and to nothing else.
+        # Its private half is a secret of this repository.
+        name: Checkout the deployment repository
+        uses: actions/checkout@v7
+        with:
+          repository: mesa-black/k3s-stack
+          ssh-key: ${{ secrets.K3S_STACK_DEPLOY_KEY }}
+          path: k3s-stack
+      -
+        # yq rather than `kustomize edit set image`: kustomize rewrites the whole
+        # file and drops its comments. The tag names the commit, the digest the
+        # bytes: an image pushed again under the same tag never reaches a node.
+        name: Point Stellar at this build
+        working-directory: k3s-stack
+        env:
+          DIGEST: ${{ needs.image.outputs.digest }}
+        run: |
+          case "$DIGEST" in sha256:*) ;; *) echo "no digest for stellar" >&2; exit 1 ;; esac
+          yq -i "(.images[] | select(.name == \"ghcr.io/mesa-black/stellar\")) |= (.newTag = \"${{ github.sha }}\" | .digest = \"$DIGEST\")" \
+            spoke/apps/stellar/kustomization.yaml
+          git diff --stat
+      -
+        # The message carries the source commit, so that the deployment history
+        # leads back to the code. A re-run with nothing to change commits nothing.
+        name: Commit and push
+        working-directory: k3s-stack
+        env:
+          SUBJECT: ${{ github.event.head_commit.message }}
+        run: |
+          git diff --quiet && { echo "already deployed"; exit 0; }
+          # First line of the source commit's message. Computed here: inside a
+          # here-document, $'\n' quoting is not interpreted.
+          subject=${SUBJECT%%$'\n'*}
+          git config user.name 'stellar CI'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -q -a -F - <<MSG
+          stellar: deploy ${GITHUB_SHA::7}
+
+          ${subject}
+
+          https://github.com/${{ github.repository }}/commit/${{ github.sha }}
+          MSG
+          for attempt in 1 2 3 4 5; do
+            git pull -q --rebase && git push -q && exit 0
+            sleep $((attempt * 3))
+          done
+          exit 1
