@@ -3,6 +3,9 @@ package stellar
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
@@ -13,6 +16,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 )
 
 // Key identifies a public key by its SHA-256 digest.
@@ -133,18 +137,84 @@ func FromHost(ctx context.Context, addr string, insecure bool) (Key, error) {
 // server restrict the addresses it agrees to connect to. A nil dialer means
 // the default one.
 func FromHostWith(ctx context.Context, netDialer *net.Dialer, addr string, insecure bool) (Key, error) {
+	host, err := InspectHost(ctx, netDialer, addr, insecure)
+	return host.Key, err
+}
+
+// Host is what a TLS server showed of itself during one handshake: its key,
+// and how the connection that carried it was protected.
+type Host struct {
+	Key Key
+	// Version is the protocol version negotiated, e.g. "TLS 1.3".
+	Version string
+	// KeyExchange is the group the two sides agreed on to derive the session
+	// keys, e.g. "X25519MLKEM768". Empty for a legacy RSA key exchange.
+	KeyExchange string
+	// PostQuantum reports whether that group includes a post-quantum KEM.
+	// It is about the secrecy of the session, not about the key drawn: the
+	// server's own key is a classical one in every certificate issued today.
+	PostQuantum bool
+	// KeyAlgorithm describes the certificate's key, e.g. "ECDSA P-256".
+	KeyAlgorithm string
+	// Issuer names who signed the certificate.
+	Issuer string
+	// NotAfter is when the certificate expires.
+	NotAfter time.Time
+}
+
+// InspectHost connects to a TLS server like FromHostWith and also reports
+// what was negotiated. The key exchange is the one agreed with this program,
+// which offers the hybrid post-quantum group first: a server that supports
+// it is seen to.
+func InspectHost(ctx context.Context, netDialer *net.Dialer, addr string, insecure bool) (Host, error) {
 	if _, _, err := net.SplitHostPort(addr); err != nil {
 		addr = net.JoinHostPort(addr, "443")
 	}
 	dialer := tls.Dialer{NetDialer: netDialer, Config: &tls.Config{InsecureSkipVerify: insecure}}
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
-		return Key{}, err
+		return Host{}, err
 	}
 	defer conn.Close()
-	k := certKey(conn.(*tls.Conn).ConnectionState().PeerCertificates[0])
-	k.Label = addr
-	return k, nil
+	state := conn.(*tls.Conn).ConnectionState()
+	cert := state.PeerCertificates[0]
+
+	host := Host{
+		Key:          certKey(cert),
+		Version:      tls.VersionName(state.Version),
+		KeyAlgorithm: keyAlgorithm(cert),
+		Issuer:       issuer(cert),
+		NotAfter:     cert.NotAfter,
+	}
+	host.Key.Label = addr
+	if state.CurveID != 0 {
+		host.KeyExchange = state.CurveID.String()
+	}
+	switch state.CurveID {
+	case tls.X25519MLKEM768, tls.SecP256r1MLKEM768, tls.SecP384r1MLKEM1024, tls.MLKEM1024:
+		host.PostQuantum = true
+	}
+	return host, nil
+}
+
+func keyAlgorithm(cert *x509.Certificate) string {
+	switch pub := cert.PublicKey.(type) {
+	case *ecdsa.PublicKey:
+		return "ECDSA " + pub.Curve.Params().Name
+	case *rsa.PublicKey:
+		return fmt.Sprintf("RSA %d", pub.N.BitLen())
+	case ed25519.PublicKey:
+		return "Ed25519"
+	}
+	return cert.PublicKeyAlgorithm.String()
+}
+
+func issuer(cert *x509.Certificate) string {
+	name := cert.Issuer.CommonName
+	if orgs := cert.Issuer.Organization; len(orgs) > 0 && !strings.Contains(name, orgs[0]) {
+		name = strings.TrimSpace(orgs[0] + " " + name)
+	}
+	return name
 }
 
 func certKey(cert *x509.Certificate) Key {

@@ -26,8 +26,26 @@ RUN test -z "$(gofmt -l .)" && go vet ./... && go test ./...
 # Set by the builder to the platform the image is for; empty means this one.
 ARG TARGETOS
 ARG TARGETARCH
+# What `stellar version` prints: the commit for an image, the tag for a release.
+ARG VERSION=dev
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags="-s -w" -o /out/stellar ./cmd/stellar
+    go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o /out/stellar ./cmd/stellar
+
+# ------------------------------------------------------------------ dist
+# The command line, for people who do not want a container: one binary per
+# platform and their checksums, taken out of the build with
+#   docker build --target dist --build-arg VERSION=v1.2.3 --output dist .
+# Not part of the image: the stage after this one is the default.
+FROM build AS dist-build
+ARG VERSION=dev
+RUN set -e; for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do \
+      CGO_ENABLED=0 GOOS=${target%/*} GOARCH=${target#*/} \
+      go build -trimpath -ldflags="-s -w -X main.version=$VERSION" \
+        -o /dist/stellar-${target%/*}-${target#*/} ./cmd/stellar; \
+    done; cd /dist && sha256sum stellar-* > SHA256SUMS
+
+FROM scratch AS dist
+COPY --from=dist-build /dist /
 
 # ------------------------------------------------------------------ run
 # Nothing but the binary and the root certificates it verifies sites against:

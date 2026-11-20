@@ -1,10 +1,11 @@
 # What runs on every push, and what a push to main delivers.
 #
-# Three jobs. `test` is the build stage of the Dockerfile and nothing else: the
+# Four jobs. `test` is the build stage of the Dockerfile and nothing else: the
 # format check, vet and the tests run there, in the very toolchain the image
 # is compiled with, so the runner needs Docker and no Go of its own. `image`
 # publishes what was tested, and `deploy` tells the deployment repository
-# which image to run.
+# which image to run. `release` runs for a version tag only: it publishes the
+# command line as binaries.
 name: CI
 
 on:
@@ -75,6 +76,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/mesa-black/stellar:${{ github.sha }}
+          build-args: |
+            VERSION=${{ github.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
@@ -144,3 +147,37 @@ jobs:
             sleep $((attempt * 3))
           done
           exit 1
+
+  # ----------------------------------------------------------------- release
+  # A version tag publishes the command line: one static binary per platform
+  # and their checksums, attached to a GitHub release whose text is the tag's
+  # own message. The website does not wait for a tag; it follows main.
+  release:
+    name: Release
+    needs: test
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    steps:
+      -
+        # The whole history is not needed, the tag's own object is: its
+        # message is the release's text.
+        name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-tags: true
+          ref: ${{ github.ref }}
+      -
+        name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+      -
+        name: Build the binaries
+        run: docker build --target dist --build-arg "VERSION=$GITHUB_REF_NAME" --output dist .
+      -
+        name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ( cd dist && sha256sum -c SHA256SUMS )
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --notes-from-tag --title "$GITHUB_REF_NAME"

@@ -8,9 +8,27 @@ It is a visual fingerprint, like OpenSSH randomart. It is **not** a cipher and i
 
 Status: prototype. The mapping is versioned (`v1`) but may still change.
 
+## Install
+
+The command line is one static binary, with no dependency.
+
+```sh
+# with Go 1.27 or later
+go install github.com/mesa-black/stellar/cmd/stellar@latest
+
+# or a binary from the releases page, here for a Mac with Apple silicon
+curl -LO https://github.com/mesa-black/stellar/releases/latest/download/stellar-darwin-arm64
+chmod +x stellar-darwin-arm64 && mv stellar-darwin-arm64 /usr/local/bin/stellar
+
+# or without installing anything
+podman run --rm ghcr.io/mesa-black/stellar:<commit> -host example.com
+```
+
+Binaries exist for `linux` and `darwin`, on `amd64` and `arm64`; `SHA256SUMS` beside them lists their checksums. `stellar version` says which build is running.
+
 ## Build
 
-Stellar needs Go 1.24 or later and has no dependency outside the standard library. Without Go, `make image` builds everything in a container, with Podman or Docker (see [Container](#container)).
+Stellar needs Go 1.27 or later and has no dependency outside the standard library. Without Go, `make image` builds everything in a container, with Podman or Docker (see [Container](#container)).
 
 ```sh
 go build -o bin/stellar ./cmd/stellar
@@ -62,6 +80,15 @@ Key:         test@stellar (ssh-ed25519)
 
 Colours are disabled when the output is not a terminal or when `NO_COLOR` is set.
 
+With `-host`, two more lines say what the certificate and the handshake show:
+
+```
+Certificate: ECDSA P-256, until 2027-02-18, Let's Encrypt YE2
+Connection:  TLS 1.3, X25519MLKEM768 (post-quantum hybrid)
+```
+
+The key exchange is the one negotiated with Stellar itself, which offers the hybrid post-quantum group first: a server that supports it is seen to. "Post-quantum" there is about the secrecy of the session. The key that is drawn is a classical one, as in every certificate issued today.
+
 ## Website
 
 `stellar serve` runs a small website: type a host name, see the sky of the key its certificate carries.
@@ -79,6 +106,8 @@ stellar serve -addr :8080 # or straight from the binary
 | `/healthz` | Liveness probe. |
 
 **The site's own sky.** Started with its public address (`-url`), the site shows on its empty page the sky of its own key, fetched like any other and refreshed in the background, so a visitor never waits for it.
+
+**What the handshake says.** Under the sky of a site, the page gives the certificate's key type, its expiry and its issuer, the TLS version, the key exchange negotiated, and whether that exchange is a post-quantum hybrid: whether what travels to the site today could be recorded now and read by a quantum computer later.
 
 **Remembering a sky.** The page stores, in the visitor's browser only (`localStorage`), the fingerprint each host showed last. On a later visit it says whether the sky is the same or has changed. A change is not proof of an attack: many sites generate a new key at every certificate renewal, so their sky changes every few weeks. Sites that keep their key across renewals keep their sky.
 

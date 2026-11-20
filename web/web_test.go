@@ -15,17 +15,26 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/mesa-black/stellar"
 )
 
 func fakeLookup(calls *atomic.Int32) Lookup {
-	return func(_ context.Context, host string) (stellar.Key, error) {
+	return func(_ context.Context, host string) (stellar.Host, error) {
 		calls.Add(1)
 		if host == "down.example" {
-			return stellar.Key{}, errors.New("dial tcp 10.1.2.3:443: connection refused")
+			return stellar.Host{}, errors.New("dial tcp 10.1.2.3:443: connection refused")
 		}
-		return stellar.Key{Digest: sha256.Sum256([]byte(host)), Kind: "X.509 certificate"}, nil
+		return stellar.Host{
+			Key:          stellar.Key{Digest: sha256.Sum256([]byte(host)), Kind: "X.509 certificate"},
+			Version:      "TLS 1.3",
+			KeyExchange:  "X25519MLKEM768",
+			PostQuantum:  host != "classical.example",
+			KeyAlgorithm: "ECDSA P-256",
+			Issuer:       "Example CA",
+			NotAfter:     time.Date(2027, 2, 18, 1, 36, 57, 0, time.UTC),
+		}, nil
 	}
 }
 
@@ -267,6 +276,32 @@ func TestHomeSelfSky(t *testing.T) {
 	}
 }
 
+// A host's page says what its certificate and its handshake say, and whether
+// the key exchange holds against a quantum computer. A pasted key has neither.
+func TestHostFacts(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+
+	body := get(t, h, "/?host=example.com").Body.String()
+	for _, want := range []string{
+		"ECDSA P-256, valid until 18 February 2027, issued by Example CA",
+		"TLS 1.3, key exchange X25519MLKEM768",
+		`data-pq="yes"`, "Post-quantum key exchange: yes.",
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the page lacks %q", want)
+		}
+	}
+	body = get(t, h, "/?host=classical.example").Body.String()
+	if !strings.Contains(body, `data-pq="no"`) || !strings.Contains(body, "Post-quantum key exchange: no.") {
+		t.Error("a classical key exchange is not said to be one")
+	}
+	body = get(t, h, "/?host="+url.QueryEscape("SHA256:kqckL3tw6x8R1HqM3pohRjFi/6wO3yM2MXYGcV0/2qc")).Body.String()
+	if strings.Contains(body, "Post-quantum") || strings.Contains(body, "<dt>Connection</dt>") {
+		t.Error("a fingerprint has no connection to describe")
+	}
+}
+
 func TestHomeErrors(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()
@@ -356,10 +391,10 @@ func TestKey(t *testing.T) {
 func TestBusy(t *testing.T) {
 	release := make(chan struct{})
 	started := make(chan struct{}, maxLookups)
-	s := New(func(_ context.Context, host string) (stellar.Key, error) {
+	s := New(func(_ context.Context, host string) (stellar.Host, error) {
 		started <- struct{}{}
 		<-release
-		return stellar.Key{}, nil
+		return stellar.Host{}, nil
 	})
 	h := s.Handler()
 	for i := 0; i < maxLookups; i++ {
@@ -378,8 +413,9 @@ func TestStatic(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()
 	for _, p := range []string{
-		"/static/app.css", "/static/app.js", "/healthz",
-		"/static/fonts/bricolage-grotesque-400-normal.woff2", "/static/fonts/ibm-plex-mono-500-normal.woff2",
+		"/static/app.css", "/static/app.js", "/static/favicon.svg", "/healthz",
+		"/static/fonts/bricolage-grotesque-300-normal.woff2", "/static/fonts/bricolage-grotesque-400-normal.woff2",
+		"/static/fonts/ibm-plex-mono-500-normal.woff2",
 	} {
 		if rec := get(t, h, p); rec.Code != 200 {
 			t.Errorf("%s: status %d", p, rec.Code)

@@ -102,9 +102,9 @@ func cleanHost(input string) (string, error) {
 	return h, nil
 }
 
-// PublicLookup fetches the key of the certificate a public host presents on
-// port 443. The certificate chain is verified.
-func PublicLookup(ctx context.Context, host string) (stellar.Key, error) {
+// PublicLookup fetches what a public host shows on port 443: the key of its
+// certificate and what it negotiates. The certificate chain is verified.
+func PublicLookup(ctx context.Context, host string) (stellar.Host, error) {
 	dialer := &net.Dialer{Timeout: 5 * time.Second, Control: publicOnly}
-	return stellar.FromHostWith(ctx, dialer, net.JoinHostPort(host, "443"), false)
+	return stellar.InspectHost(ctx, dialer, net.JoinHostPort(host, "443"), false)
 }

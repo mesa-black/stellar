@@ -6,6 +6,7 @@
 <title>{{if .Name}}{{.Name}} · {{end}}Stellar</title>
 <meta name="description" content="Every website key has a sky. Stellar draws a site's public key as a constellation you can recognise at a glance.">
 <link rel="stylesheet" href="/static/app.css">
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <script src="/static/app.js" defer></script>
 </head>
 <body>
@@ -37,7 +38,16 @@
         {{if .Label}}<dt>Key of</dt><dd>{{.Label}}</dd>{{end}}
         <dt>Kind</dt><dd>{{.Kind}}</dd>
         <dt>Fingerprint</dt><dd class="mono">{{.Fingerprint}}</dd>
+        {{if .KeyAlgorithm}}<dt>Certificate</dt><dd>{{.KeyAlgorithm}}{{if .ValidUntil}}, valid until {{.ValidUntil}}{{end}}{{if .Issuer}}, issued by {{.Issuer}}{{end}}</dd>{{end}}
+        {{if .Version}}<dt>Connection</dt><dd>{{.Version}}{{if .KeyExchange}}, key exchange {{.KeyExchange}}{{end}}</dd>{{end}}
       </dl>
+      {{if .Version}}
+      <p class="quantum" data-pq="{{if .PostQuantum}}yes{{else}}no{{end}}">
+        {{if .PostQuantum}}<strong>Post-quantum key exchange: yes.</strong> What travels to this site today stays secret even if it is recorded now and a quantum computer is pointed at it later.
+        {{else}}<strong>Post-quantum key exchange: no.</strong> What travels to this site today can be recorded now and read later by a quantum computer.
+        {{end}}The key drawn here is another matter: it is a classical one, as in every certificate issued today, and it only says who answers now.
+      </p>
+      {{end}}
       <p class="share">
         <span class="over">Share this sky</span>
         <a class="button" href="{{.ShareURL}}" rel="noopener noreferrer" target="_blank">Send on Threema</a>

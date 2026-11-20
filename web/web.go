@@ -38,8 +38,8 @@ const (
 	maxKeyBytes  = 64 << 10
 )
 
-// Lookup returns the key a host presents.
-type Lookup func(ctx context.Context, host string) (stellar.Key, error)
+// Lookup returns what a host shows of itself: its key and how it negotiates.
+type Lookup func(ctx context.Context, host string) (stellar.Host, error)
 
 // Server is the website. The zero value is not usable; call New.
 type Server struct {
@@ -60,8 +60,8 @@ type Server struct {
 }
 
 type cached struct {
-	key stellar.Key
-	at  time.Time
+	host stellar.Host
+	at   time.Time
 }
 
 // New returns a server that resolves hosts with lookup. Pass PublicLookup
@@ -111,6 +111,15 @@ type view struct {
 	Kind        string
 	Label       string
 	SVG         template.HTML
+
+	// Set for a host: what its certificate and its handshake say.
+	KeyAlgorithm string
+	Issuer       string
+	ValidUntil   string
+	Version      string
+	KeyExchange  string
+	PostQuantum  bool
+
 	// ShareURL opens Threema with a message about this sky, ready to edit.
 	ShareURL string
 
@@ -138,12 +147,17 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 			v.share("")
 		}
 	} else if query != "" {
-		host, key, err := s.resolve(r.Context(), query)
+		host, seen, err := s.resolve(r.Context(), query)
 		if err != nil {
 			v.Error, status = explain(err)
 		} else {
 			v.Query, v.Host = host, host
-			v.show(key)
+			v.show(seen.Key)
+			v.KeyAlgorithm, v.Issuer = seen.KeyAlgorithm, seen.Issuer
+			v.Version, v.KeyExchange, v.PostQuantum = seen.Version, seen.KeyExchange, seen.PostQuantum
+			if !seen.NotAfter.IsZero() {
+				v.ValidUntil = seen.NotAfter.UTC().Format("2 January 2006")
+			}
 			v.share(s.BaseURL)
 		}
 	}
@@ -180,9 +194,9 @@ func (s *Server) showSelf(v *view) {
 	if !ok {
 		return
 	}
-	c := stellar.New(hit.key.Digest)
+	c := stellar.New(hit.host.Key.Digest)
 	v.SelfHost, v.SelfName = host, c.Name
-	v.SelfSVG = template.HTML(c.SVG(640, hit.key.Fingerprint()))
+	v.SelfSVG = template.HTML(c.SVG(640, hit.host.Key.Fingerprint()))
 }
 
 // RefreshSelf fetches the site's own key into the cache. One at a time.
@@ -192,13 +206,13 @@ func (s *Server) RefreshSelf() {
 		return
 	}
 	defer s.selfBusy.Store(false)
-	key, err := s.lookup(context.Background(), host)
+	seen, err := s.lookup(context.Background(), host)
 	if err != nil {
 		return
 	}
-	key.Label = host
+	seen.Key.Label = host
 	s.mu.Lock()
-	s.cache[host] = cached{key, s.now()}
+	s.cache[host] = cached{seen, s.now()}
 	s.mu.Unlock()
 }
 
@@ -223,12 +237,13 @@ func (s *Server) sky(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	_, key, err := s.resolve(r.Context(), name)
+	_, seen, err := s.resolve(r.Context(), name)
 	if err != nil {
 		msg, status := explain(err)
 		http.Error(w, msg, status)
 		return
 	}
+	key := seen.Key
 	size := 640
 	if n, err := strconv.Atoi(r.URL.Query().Get("size")); err == nil {
 		size = min(max(n, 64), 2048)
@@ -275,19 +290,19 @@ func render(w http.ResponseWriter, status int, v view) {
 
 var errBusy = errors.New("too many lookups in progress")
 
-// resolve validates what the visitor typed and returns the host's key, from
-// the cache when it is fresh.
-func (s *Server) resolve(ctx context.Context, input string) (string, stellar.Key, error) {
+// resolve validates what the visitor typed and returns what the host shows,
+// from the cache when it is fresh.
+func (s *Server) resolve(ctx context.Context, input string) (string, stellar.Host, error) {
 	host, err := cleanHost(input)
 	if err != nil {
-		return "", stellar.Key{}, err
+		return "", stellar.Host{}, err
 	}
 
 	s.mu.Lock()
 	hit, ok := s.cache[host]
 	s.mu.Unlock()
 	if ok && s.now().Sub(hit.at) < cacheTTL {
-		return host, hit.key, nil
+		return host, hit.host, nil
 	}
 
 	// A bounded number of outbound connections, so a burst of requests
@@ -296,24 +311,24 @@ func (s *Server) resolve(ctx context.Context, input string) (string, stellar.Key
 	case s.slots <- struct{}{}:
 		defer func() { <-s.slots }()
 	default:
-		return "", stellar.Key{}, errBusy
+		return "", stellar.Host{}, errBusy
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, lookupBudget)
 	defer cancel()
-	key, err := s.lookup(ctx, host)
+	seen, err := s.lookup(ctx, host)
 	if err != nil {
-		return "", stellar.Key{}, err
+		return "", stellar.Host{}, err
 	}
-	key.Label = host
+	seen.Key.Label = host
 
 	s.mu.Lock()
 	if len(s.cache) >= cacheMax {
 		clear(s.cache)
 	}
-	s.cache[host] = cached{key, s.now()}
+	s.cache[host] = cached{seen, s.now()}
 	s.mu.Unlock()
-	return host, key, nil
+	return host, seen, nil
 }
 
 // explain turns a lookup error into a sentence for the visitor and an HTTP

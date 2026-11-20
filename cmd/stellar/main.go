@@ -18,6 +18,7 @@ const usage = `Usage:
   stellar [flags] SHA256:<base64>  a fingerprint, as printed by ssh-keygen -l
   stellar [flags] -host <name>     the certificate a TLS server presents
   stellar serve [-addr host:port]  the website
+  stellar version                  the version of this program
 
 Flags:
 `
@@ -29,9 +30,16 @@ func main() {
 	}
 }
 
+// version is set at build time (-ldflags "-X main.version=…").
+var version = "dev"
+
 func run() error {
 	if len(os.Args) > 1 && os.Args[1] == "serve" {
 		return serve(os.Args[2:])
+	}
+	if len(os.Args) > 1 && (os.Args[1] == "version" || os.Args[1] == "-version" || os.Args[1] == "--version") {
+		fmt.Printf("stellar %s (mapping v%d)\n", version, stellar.Version)
+		return nil
 	}
 	host := flag.String("host", "", "fetch the key from a TLS server, `name[:port]`")
 	insecure := flag.Bool("insecure", false, "with -host, do not verify the certificate chain")
@@ -43,7 +51,7 @@ func run() error {
 	}
 	flag.Parse()
 
-	key, err := load(*host, *insecure, flag.Args())
+	key, seen, err := load(*host, *insecure, flag.Args())
 	if err != nil {
 		return err
 	}
@@ -67,20 +75,40 @@ func run() error {
 	} else {
 		fmt.Printf("Key:         %s\n", key.Kind)
 	}
+	if seen != nil {
+		// What the certificate and the handshake say, beside the key.
+		fmt.Printf("Certificate: %s, until %s, %s\n", seen.KeyAlgorithm, seen.NotAfter.UTC().Format("2006-01-02"), seen.Issuer)
+		exchange := seen.KeyExchange
+		switch {
+		case exchange == "":
+			exchange = "RSA key exchange"
+		case seen.PostQuantum:
+			exchange += " (post-quantum hybrid)"
+		default:
+			exchange += " (not post-quantum)"
+		}
+		fmt.Printf("Connection:  %s, %s\n", seen.Version, exchange)
+	}
 	if *out != "" {
 		fmt.Printf("Written to:  %s\n", *out)
 	}
 	return nil
 }
 
-func load(host string, insecure bool, args []string) (stellar.Key, error) {
+// load returns the key to draw and, for a TLS server, what it showed of
+// itself beside it.
+func load(host string, insecure bool, args []string) (stellar.Key, *stellar.Host, error) {
 	if host != "" {
 		if len(args) != 0 {
-			return stellar.Key{}, fmt.Errorf("-host takes no other argument")
+			return stellar.Key{}, nil, fmt.Errorf("-host takes no other argument")
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		return stellar.FromHost(ctx, host, insecure)
+		seen, err := stellar.InspectHost(ctx, nil, host, insecure)
+		if err != nil {
+			return stellar.Key{}, nil, err
+		}
+		return seen.Key, &seen, nil
 	}
 	if len(args) != 1 {
 		flag.Usage()
@@ -90,21 +118,23 @@ func load(host string, insecure bool, args []string) (stellar.Key, error) {
 	if arg == "-" {
 		data, err := io.ReadAll(os.Stdin)
 		if err != nil {
-			return stellar.Key{}, err
+			return stellar.Key{}, nil, err
 		}
-		return stellar.Parse(data)
+		key, err := stellar.Parse(data)
+		return key, nil, err
 	}
 	data, err := os.ReadFile(arg)
 	if os.IsNotExist(err) {
 		// Not a file: accept a fingerprint given on the command line.
 		if key, ferr := stellar.ParseFingerprint(arg); ferr == nil {
-			return key, nil
+			return key, nil, nil
 		}
 	}
 	if err != nil {
-		return stellar.Key{}, err
+		return stellar.Key{}, nil, err
 	}
-	return stellar.Parse(data)
+	key, err := stellar.Parse(data)
+	return key, nil, err
 }
 
 // useColor reports whether standard output is a terminal that wants colour.
