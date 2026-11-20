@@ -80,6 +80,34 @@
       {{end}}
     </div>
   </article>
+  {{if .LogsState}}
+  <section class="logs" id="logs">
+    <h2>{{.T "logs.title"}}</h2>
+    {{if eq .LogsState "offer"}}
+    <p>{{.T "logs.offer"}}</p>
+    <p><a class="button" href="{{.LogsURL}}">{{.T "logs.ask"}}</a></p>
+    {{else if eq .LogsState "shown"}}
+    <p>{{.T "logs.shown"}}{{if not .LogsCurrent}} <strong>{{.T "logs.absent"}}</strong>{{end}}</p>
+    <ol class="skies">
+      {{range .Logs}}
+      <li{{if .Current}} class="current"{{end}}>
+        <a href="{{$.HostURL .Fingerprint}}">{{.SVG}}</a>
+        <strong>{{.Name}}</strong>{{if .Current}} <span class="over">{{$.T "logs.current"}}</span>{{end}}
+        <span>{{$.T "logs.span" .Since .Until}}</span>
+        <span>{{.Issuer}}</span>
+      </li>
+      {{end}}
+    </ol>
+    <p class="source">{{.T "logs.source"}}</p>
+    {{else if eq .LogsState "empty"}}
+    <p>{{.T "logs.empty"}}</p>
+    {{else if eq .LogsState "busy"}}
+    <p>{{.T "logs.busy"}}</p>
+    {{else}}
+    <p>{{.T "logs.failed"}}</p>
+    {{end}}
+  </section>
+  {{end}}
   {{else}}
   <section class="about{{if .SelfName}} with-sky{{end}}">
     {{if .SelfName}}

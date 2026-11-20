@@ -21,9 +21,13 @@ func serve(args []string) error {
 	fs := flag.NewFlagSet("stellar serve", flag.ExitOnError)
 	addr := fs.String("addr", "127.0.0.1:8080", "listen on `host:port`")
 	base := fs.String("url", "", "public `address` of the site, e.g. https://stellar.example; shared messages link back to it")
+	logs := fs.Bool("logs", false, "let visitors look a host up in the public certificate logs; its name is then sent to Cert Spotter (SSLMate)")
 	fs.Parse(args)
 
 	site := web.New(web.PublicLookup)
+	if *logs {
+		site.Logs = web.CertSpotter
+	}
 	if *base != "" {
 		u, err := url.Parse(*base)
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {

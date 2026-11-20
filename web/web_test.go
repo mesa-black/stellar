@@ -414,6 +414,71 @@ func TestAnnounced(t *testing.T) {
 	}
 }
 
+// The public logs are read only when the site allows it and the visitor asks,
+// and what they hold is drawn by key.
+func TestLogs(t *testing.T) {
+	var calls atomic.Int32
+	var asked atomic.Int32
+	s := New(fakeLookup(&calls))
+	h := s.Handler()
+	if strings.Contains(get(t, h, "/?host=example.com&logs=1").Body.String(), `id="logs"`) {
+		t.Error("a site that does not read the logs offers to")
+	}
+
+	now := time.Date(2026, 11, 20, 0, 0, 0, 0, time.UTC)
+	shown, older, strange := sha256.Sum256([]byte("example.com")), sha256.Sum256([]byte("older")), sha256.Sum256([]byte("strange"))
+	s.Logs = func(_ context.Context, host string) ([]Issuance, error) {
+		asked.Add(1)
+		switch host {
+		case "busy.example":
+			return nil, errLogsBusy
+		case "down.example":
+			return nil, errors.New("dial tcp 10.9.9.9:443: refused")
+		case "bare.example":
+			return nil, nil
+		case "strange.example":
+			return []Issuance{{Key: strange, NotBefore: now, NotAfter: now.AddDate(0, 3, 0), Issuer: "Other CA"}}, nil
+		}
+		return []Issuance{
+			{Key: older, NotBefore: now.AddDate(0, -2, 0), NotAfter: now.AddDate(0, 1, 0), Issuer: "Example CA"},
+			{Key: shown, NotBefore: now.AddDate(0, 0, -3), NotAfter: now.AddDate(0, 3, -3), Issuer: "Example CA"},
+			{Key: shown, NotBefore: now.AddDate(0, 0, -3), NotAfter: now.AddDate(0, 3, -3), Issuer: "Example CA"}, // its precertificate
+		}, nil
+	}
+
+	body := get(t, h, "/?host=example.com").Body.String()
+	if !strings.Contains(body, "Look in the public logs") || !strings.Contains(body, `href="/?host=example.com&amp;logs=1#logs"`) || asked.Load() != 0 {
+		t.Fatal("the logs are not offered, or were read without being asked for")
+	}
+
+	body = get(t, h, "/?host=example.com&logs=1").Body.String()
+	first, second := stellar.New(shown).Name, stellar.New(older).Name
+	i, j := strings.Index(body, "<strong>"+first+"</strong>"), strings.Index(body, "<strong>"+second+"</strong>")
+	if i < 0 || j < 0 || i > j {
+		t.Errorf("the two keys are not listed most recent first (%d, %d)", i, j)
+	}
+	if strings.Count(body, `class="current"`) != 1 || strings.Contains(body, "is not among them") {
+		t.Error("the key the site showed is not marked among the logged ones")
+	}
+	get(t, h, "/?host=example.com&logs=1")
+	if asked.Load() != 1 {
+		t.Errorf("the logs were asked %d times for one host", asked.Load())
+	}
+
+	if body := get(t, h, "/?host=strange.example&logs=1").Body.String(); !strings.Contains(body, "The key this site showed is not among them.") {
+		t.Error("a site whose key the logs do not hold is not told so")
+	}
+	if body := get(t, h, "/?host=bare.example&logs=1").Body.String(); !strings.Contains(body, "hold no valid certificate") {
+		t.Error("empty logs are not said to be empty")
+	}
+	if body := get(t, h, "/?host=busy.example&logs=1").Body.String(); !strings.Contains(body, "accepts no more questions") {
+		t.Error("a refusal is not explained")
+	}
+	if body := get(t, h, "/?host=down.example&logs=1").Body.String(); strings.Contains(body, "10.9.9.9") {
+		t.Error("a failure leaks the underlying error")
+	}
+}
+
 func TestHomeErrors(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()

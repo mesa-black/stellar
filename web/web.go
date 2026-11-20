@@ -52,6 +52,11 @@ type Server struct {
 	// guessed from the request could be a local one.
 	BaseURL string
 
+	// Logs reads the public certificate logs. Nil turns the feature off:
+	// asking them sends a visitor's host name to a third party, which is a
+	// decision for whoever runs the site.
+	Logs Logs
+
 	lookup Lookup
 	now    func() time.Time
 	slots  chan struct{}
@@ -62,6 +67,8 @@ type Server struct {
 	cache map[string]cached
 	// cards holds the preview pictures already drawn, by key.
 	cards map[[32]byte][]byte
+	// logs holds what the public logs said about each host.
+	logs map[string]cachedLogs
 }
 
 type cached struct {
@@ -78,6 +85,7 @@ func New(lookup Lookup) *Server {
 		slots:  make(chan struct{}, maxLookups),
 		cache:  map[string]cached{},
 		cards:  map[[32]byte][]byte{},
+		logs:   map[string]cachedLogs{},
 	}
 }
 
@@ -146,6 +154,14 @@ type view struct {
 	AnnouncedNames string
 	// Record is the DNS record that would announce this key.
 	Record string
+
+	// LogsState says what became of a look at the public logs: "offer" (the
+	// visitor may ask), "shown", "empty", "busy" or "failed". Empty when the
+	// site does not read them.
+	LogsState   string
+	Logs        []loggedSky
+	LogsCurrent bool
+	LogsURL     string
 
 	// ShareURL opens Threema with a message about this sky, ready to edit.
 	ShareURL string
@@ -228,6 +244,21 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 				v.ValidUntil = longDate(v.Lang, seen.NotAfter)
 			}
 			v.announce(host, seen)
+			if s.Logs != nil {
+				// Only when asked: the name goes to a third party.
+				v.LogsState, v.LogsURL = "offer", v.HostURL(host)+"&logs=1#logs"
+				if r.URL.Query().Get("logs") == "1" {
+					issuances, err := s.logged(r.Context(), host)
+					switch {
+					case errors.Is(err, errLogsBusy):
+						v.LogsState = "busy"
+					case err != nil:
+						v.LogsState = "failed"
+					default:
+						v.showLogs(issuances, seen.Key.Digest)
+					}
+				}
+			}
 			v.share(s.BaseURL)
 		}
 	}
