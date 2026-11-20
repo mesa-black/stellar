@@ -9,7 +9,7 @@
 <radialGradient id="glow3"><stop offset="0" stop-color="#ffb070" stop-opacity=".55"/><stop offset="1" stop-color="#ffb070" stop-opacity="0"/></radialGradient>
 <radialGradient id="glow4"><stop offset="0" stop-color="#ff7b6b" stop-opacity=".55"/><stop offset="1" stop-color="#ff7b6b" stop-opacity="0"/></radialGradient>
 </defs>
-<rect width="1000" height="1000" rx="36" fill="url(#sky)"/>
+<rect width="1000" height="1000" rx="4" fill="url(#sky)"/>
 <g fill="#cfd8ff">
 <circle cx="134.8" cy="634.8" r="1.8" opacity="0.59"/>
 <circle cx="228.5" cy="95.7" r="1.8" opacity="0.59"/>

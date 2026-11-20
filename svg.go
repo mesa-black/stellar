@@ -30,7 +30,7 @@ func (c *Constellation) SVG(size int, caption string) string {
 		w(`<radialGradient id="glow%d"><stop offset="0" stop-color="%s" stop-opacity=".55"/><stop offset="1" stop-color="%s" stop-opacity="0"/></radialGradient>`+"\n", i, col, col)
 	}
 	w("</defs>\n")
-	w(`<rect width="1000" height="1000" rx="36" fill="url(#sky)"/>` + "\n")
+	w(`<rect width="1000" height="1000" rx="4" fill="url(#sky)"/>` + "\n")
 
 	w(`<g fill="#cfd8ff">` + "\n")
 	for _, f := range c.Field {
