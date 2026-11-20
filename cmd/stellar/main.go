@@ -20,6 +20,8 @@ const usage = `Usage:
   stellar [flags] SHA256:<base64>  a fingerprint, as printed by ssh-keygen -l
   stellar [flags] -host <name>     the certificate a TLS server presents
   stellar serve [-addr host:port]  the website
+  stellar announce -zone <zone> <host>...
+                                   publish the hosts' keys as DANE records (Gandi)
   stellar version                  the version of this program
 
 Flags:
@@ -38,6 +40,9 @@ var version = "dev"
 func run() error {
 	if len(os.Args) > 1 && os.Args[1] == "serve" {
 		return serve(os.Args[2:])
+	}
+	if len(os.Args) > 1 && os.Args[1] == "announce" {
+		return announce(os.Args[2:])
 	}
 	if len(os.Args) > 1 && (os.Args[1] == "version" || os.Args[1] == "-version" || os.Args[1] == "--version") {
 		fmt.Printf("stellar %s (mapping v%d)\n", version, stellar.Version)

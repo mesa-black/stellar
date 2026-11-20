@@ -113,6 +113,21 @@ stellar serve -addr :8080 # or straight from the binary
 
 Stellar does not validate DNSSEC: the answer is what the DNS said to the resolver the server uses, a second road independent of the certificate authorities, and as trustworthy as that road. Go's resolver does not ask for TLSA records, so the question is written out in `dane.go`; it goes to the machine's own resolver and to no address a visitor chose.
 
+**Keeping the announcement true.** A certificate that renews with a new key makes yesterday's record wrong. `stellar announce` closes that gap: it reads the key each host serves, as a visitor would, and makes the host's `TLSA 3 1 1` record say the same.
+
+```sh
+stellar announce -zone example.org -dry-run example.org www.example.org   # print the records, publish nothing
+GANDI_TOKEN=… stellar announce -zone example.org example.org www.example.org
+```
+
+It is meant to run every few minutes. What it does and does not do:
+
+- The key comes from a TLS handshake whose certificate chain verifies. No private key is read, and a host that does not answer, or answers with a certificate the machine does not trust, keeps the record it had. Nothing is ever deleted.
+- Between a renewal and the next run, plus the record's lifetime in caches (`-ttl`, 300 seconds by default), the DNS announces the previous key. A client that enforces DANE would refuse the site for those minutes; browsers do not enforce it.
+- The record set at `_443._tcp.<host>` belongs to the command: anything else published there is replaced.
+- The zone must be signed with DNSSEC for the record to be worth more than the DNS it travels in.
+- One provider is supported: Gandi LiveDNS, with a personal access token limited to the zone, read from `GANDI_TOKEN` and sent to `api.gandi.net` only.
+
 **In the public logs.** Started with `-logs`, the site offers, under a host's sky, to look the name up in the public Certificate Transparency logs and to draw the keys that hold a valid certificate for it today. More than one is ordinary around a renewal; one nobody recognises is a certificate somebody obtained for the name; and the page says when the key the site showed is not among them. The logs are read through Cert Spotter (SSLMate), whose answers carry the SHA-256 of each key. That has two consequences, both said on the page: the name is sent to that service, so nothing is asked until the visitor asks, and it lists unexpired certificates only, so this is the present and not a history. Its free interface allows a hundred questions an hour; answers are kept four hours.
 
 **Languages.** The site speaks English, French and Spanish. It answers in the language the browser asks for (`Accept-Language`), and a visitor can choose another at the foot of the page; that choice travels in the address (`?lang=fr`), so a link keeps the language it was copied in. English governs: `web/i18n.go` holds the three catalogues, and a test refuses one whose sentences or placeholders differ from the English.
