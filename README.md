@@ -92,7 +92,7 @@ stellar serve -addr :8080 # or straight from the binary
 
 There is no per-visitor rate limit: put the site behind a reverse proxy that has one before exposing it to the internet.
 
-The pages load nothing from other origins and carry no inline script or style, under a `default-src 'none'` content security policy.
+The pages load nothing from other origins and carry no inline script or style, under a `default-src 'none'` content security policy. The typefaces (Bricolage Grotesque and IBM Plex Mono, both under the SIL Open Font License) are served by the site itself; see `web/static/fonts/NOTICE.txt`.
 
 ### Container
 

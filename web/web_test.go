@@ -128,8 +128,13 @@ func TestHomeEmpty(t *testing.T) {
 	if strings.Contains(rec.Body.String(), "<svg") {
 		t.Error("the empty page draws a constellation")
 	}
-	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "default-src 'none'") {
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "default-src 'none'") || !strings.Contains(csp, "font-src 'self'") {
 		t.Errorf("CSP = %q", csp)
+	}
+	for _, link := range []string{`href="https://github.com/mesa-black/sablier"`, `href="https://mesa.black"`} {
+		if !strings.Contains(rec.Body.String(), link) {
+			t.Errorf("the footer lacks %s", link)
+		}
 	}
 }
 
@@ -308,7 +313,10 @@ func TestBusy(t *testing.T) {
 func TestStatic(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()
-	for _, p := range []string{"/static/app.css", "/static/app.js", "/healthz"} {
+	for _, p := range []string{
+		"/static/app.css", "/static/app.js", "/healthz",
+		"/static/fonts/bricolage-grotesque-400-normal.woff2", "/static/fonts/ibm-plex-mono-500-normal.woff2",
+	} {
 		if rec := get(t, h, p); rec.Code != 200 {
 			t.Errorf("%s: status %d", p, rec.Code)
 		}
