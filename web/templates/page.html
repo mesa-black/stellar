@@ -57,6 +57,9 @@
         {{.T "pq.key"}}
       </p>
       {{end}}
+      {{if eq .Announced "yes"}}<p class="quantum" data-pq="yes">{{.T "dane.yes"}} {{.T "dane.trust"}}</p>
+      {{else if eq .Announced "other"}}<p class="quantum" data-pq="no">{{.T "dane.other" .AnnouncedNames}} {{.T "dane.trust"}}</p>
+      {{end}}
       <p class="share">
         <span class="over">{{.T "share.label"}}</span>
         <a class="button" href="{{.ShareURL}}" rel="noopener noreferrer" target="_blank">{{.T "share.button"}}</a>
@@ -66,6 +69,13 @@
         <summary>{{.T "embed.summary"}}</summary>
         <p>{{.T "embed.text"}}</p>
         <pre class="mono">&lt;img src="{{.Base}}/sky/{{.Host}}.svg" alt="{{.Name}}" width="320" height="320"&gt;</pre>
+      </details>
+      {{end}}
+      {{if or (eq .Announced "none") (eq .Announced "unread")}}
+      <details>
+        <summary>{{.T "dane.owner.summary"}}</summary>
+        <p>{{if eq .Announced "unread"}}{{.T "dane.unread"}} {{end}}{{.T "dane.owner.text"}}</p>
+        <pre class="mono">{{.Record}}</pre>
       </details>
       {{end}}
     </div>

@@ -160,6 +160,10 @@ type Host struct {
 	Issuer string
 	// NotAfter is when the certificate expires.
 	NotAfter time.Time
+	// Announcement is what the DNS says the host's key should be (see
+	// LookupAnnouncement). InspectHost leaves it nil; nil means nobody asked,
+	// or the question got no usable answer.
+	Announcement *Announcement
 }
 
 // InspectHost connects to a TLS server like FromHostWith and also reports

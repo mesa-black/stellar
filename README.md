@@ -80,11 +80,12 @@ Key:         test@stellar (ssh-ed25519)
 
 Colours are disabled when the output is not a terminal or when `NO_COLOR` is set.
 
-With `-host`, two more lines say what the certificate and the handshake show:
+With `-host`, three more lines say what the certificate, the handshake and the DNS show:
 
 ```
 Certificate: ECDSA P-256, until 2027-02-18, Let's Encrypt YE2
 Connection:  TLS 1.3, X25519MLKEM768 (post-quantum hybrid)
+Announced:   no, the domain publishes no DANE record
 ```
 
 The key exchange is the one negotiated with Stellar itself, which offers the hybrid post-quantum group first: a server that supports it is seen to. "Post-quantum" there is about the secrecy of the session. The key that is drawn is a classical one, as in every certificate issued today.
@@ -107,6 +108,10 @@ stellar serve -addr :8080 # or straight from the binary
 | `/healthz` | Liveness probe. |
 
 **The site's own sky.** Started with its public address (`-url`), the site shows on its empty page the sky of its own key, fetched like any other and refreshed in the background, so a visitor never waits for it.
+
+**What the owner announces.** A domain can say in its DNS which key to expect from it: a TLSA record (DANE, RFC 6698) at `_443._tcp.<host>`. The form everyone is advised to publish, `3 1 1`, carries the SHA-256 of the key, which is exactly the digest a sky is drawn from. So Stellar reads that record as a sky: under a site's own, the page says whether the owner announces this key, another one (named), or none, in which case it shows the record to publish. `stellar -host` prints the same on its `Announced:` line.
+
+Stellar does not validate DNSSEC: the answer is what the DNS said to the resolver the server uses, a second road independent of the certificate authorities, and as trustworthy as that road. Go's resolver does not ask for TLSA records, so the question is written out in `dane.go`; it goes to the machine's own resolver and to no address a visitor chose.
 
 **Languages.** The site speaks English, French and Spanish. It answers in the language the browser asks for (`Accept-Language`), and a visitor can choose another at the foot of the page; that choice travels in the address (`?lang=fr`), so a link keeps the language it was copied in. English governs: `web/i18n.go` holds the three catalogues, and a test refuses one whose sentences or placeholders differ from the English.
 

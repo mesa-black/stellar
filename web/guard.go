@@ -106,5 +106,15 @@ func cleanHost(input string) (string, error) {
 // certificate and what it negotiates. The certificate chain is verified.
 func PublicLookup(ctx context.Context, host string) (stellar.Host, error) {
 	dialer := &net.Dialer{Timeout: 5 * time.Second, Control: publicOnly}
-	return stellar.InspectHost(ctx, dialer, net.JoinHostPort(host, "443"), false)
+	seen, err := stellar.InspectHost(ctx, dialer, net.JoinHostPort(host, "443"), false)
+	if err != nil {
+		return seen, err
+	}
+	// What the owner announces in the DNS, asked of the machine's own
+	// resolver: no address chosen by the visitor is contacted for it. A
+	// question that fails is no reason to refuse the page.
+	if announced, err := stellar.LookupAnnouncement(ctx, host); err == nil {
+		seen.Announcement = &announced
+	}
+	return seen, nil
 }

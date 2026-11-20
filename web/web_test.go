@@ -37,8 +37,25 @@ func fakeLookup(calls *atomic.Int32) Lookup {
 			KeyAlgorithm: "ECDSA P-256",
 			Issuer:       "Example CA",
 			NotAfter:     time.Date(2027, 2, 18, 1, 36, 57, 0, time.UTC),
+			Announcement: announcementOf(host),
 		}, nil
 	}
+}
+
+// announcementOf gives each test host what its DNS would say: its own key,
+// another one, records Stellar does not read, nothing, or no answer at all.
+func announcementOf(host string) *stellar.Announcement {
+	switch host {
+	case "announced.example":
+		return &stellar.Announcement{Keys: [][32]byte{sha256.Sum256([]byte("old.example")), sha256.Sum256([]byte(host))}}
+	case "stale.example":
+		return &stellar.Announcement{Keys: [][32]byte{sha256.Sum256([]byte("old.example"))}}
+	case "unread.example":
+		return &stellar.Announcement{Other: 2}
+	case "deaf.example":
+		return nil
+	}
+	return &stellar.Announcement{}
 }
 
 func get(t *testing.T, h http.Handler, target string) *httptest.ResponseRecorder {
@@ -369,6 +386,31 @@ func TestLanguage(t *testing.T) {
 	}
 	if body := page("/?lang=fr&host=127.0.0.1", ""); !strings.Contains(body, "Saisissez un nom de site public") {
 		t.Error("an error is not said in the page's language")
+	}
+}
+
+// What the owner announces in the DNS is compared with what the site showed.
+func TestAnnounced(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+	page := func(host string) string { return get(t, h, "/?host="+host).Body.String() }
+
+	if body := page("announced.example"); !strings.Contains(body, "Announced by the owner: yes.") || strings.Contains(body, "IN TLSA") {
+		t.Error("an announced key is not said to be, or its owner is told to announce it")
+	}
+	stale := stellar.New(sha256.Sum256([]byte("old.example"))).Name
+	if body := page("stale.example"); !strings.Contains(body, "Announced by the owner: another key.") || !strings.Contains(body, stale) {
+		t.Error("a key the DNS does not announce is not flagged, or the announced sky is not named")
+	}
+	record := stellar.Record("example.com", sha256.Sum256([]byte("example.com")))
+	if body := page("example.com"); !strings.Contains(body, record) || strings.Contains(body, "Announced by the owner") {
+		t.Error("a domain that announces nothing is not shown the record to publish")
+	}
+	if body := page("unread.example"); !strings.Contains(body, "of a form Stellar does not read") {
+		t.Error("records of another form are passed over in silence")
+	}
+	if body := page("deaf.example"); strings.Contains(body, "TLSA") || strings.Contains(body, "Announced") {
+		t.Error("a DNS that did not answer is read as an answer")
 	}
 }
 

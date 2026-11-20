@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -95,6 +96,23 @@ func run() error {
 			exchange += " (not post-quantum)"
 		}
 		fmt.Printf("Connection:  %s, %s\n", seen.Version, exchange)
+		// What the owner announces in the DNS, when the DNS answered.
+		if a := seen.Announcement; a != nil {
+			switch {
+			case a.Announces(key.Digest):
+				fmt.Println("Announced:   yes, by a DANE record in the domain's DNS (not DNSSEC-validated here)")
+			case len(a.Keys) > 0:
+				names := make([]string, len(a.Keys))
+				for i, k := range a.Keys {
+					names[i] = stellar.New(k).Name
+				}
+				fmt.Printf("Announced:   ANOTHER KEY. The DNS announces %s\n", strings.Join(names, ", "))
+			case a.Other > 0:
+				fmt.Println("Announced:   DANE records of a form stellar does not read")
+			default:
+				fmt.Println("Announced:   no, the domain publishes no DANE record")
+			}
+		}
 	}
 	if *out != "" {
 		fmt.Printf("Written to:  %s\n", *out)
@@ -114,6 +132,13 @@ func load(host string, insecure bool, args []string) (stellar.Key, *stellar.Host
 		seen, err := stellar.InspectHost(ctx, nil, host, insecure)
 		if err != nil {
 			return stellar.Key{}, nil, err
+		}
+		name, _, splitErr := net.SplitHostPort(host)
+		if splitErr != nil {
+			name = host
+		}
+		if announced, err := stellar.LookupAnnouncement(ctx, name); err == nil {
+			seen.Announcement = &announced
 		}
 		return seen.Key, &seen, nil
 	}

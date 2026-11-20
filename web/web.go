@@ -137,6 +137,16 @@ type view struct {
 	KeyExchange  string
 	PostQuantum  bool
 
+	// Announced says how the key compares with what the owner publishes in
+	// the DNS: "yes", "other" (other keys are announced, not this one),
+	// "unread" (records of a form Stellar does not read), "none", or empty
+	// when the DNS gave no usable answer.
+	Announced string
+	// AnnouncedNames are the skies announced, when this one is not.
+	AnnouncedNames string
+	// Record is the DNS record that would announce this key.
+	Record string
+
 	// ShareURL opens Threema with a message about this sky, ready to edit.
 	ShareURL string
 
@@ -217,6 +227,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 			if !seen.NotAfter.IsZero() {
 				v.ValidUntil = longDate(v.Lang, seen.NotAfter)
 			}
+			v.announce(host, seen)
 			v.share(s.BaseURL)
 		}
 	}
@@ -354,6 +365,30 @@ func (s *Server) card(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	w.Write(picture)
+}
+
+// announce compares the key a host showed with the keys its owner announces.
+func (v *view) announce(host string, seen stellar.Host) {
+	a := seen.Announcement
+	if a == nil {
+		return
+	}
+	v.Record = stellar.Record(host, seen.Key.Digest)
+	switch {
+	case a.Announces(seen.Key.Digest):
+		v.Announced = "yes"
+	case len(a.Keys) > 0:
+		v.Announced = "other"
+		names := make([]string, len(a.Keys))
+		for i, k := range a.Keys {
+			names[i] = stellar.New(k).Name
+		}
+		v.AnnouncedNames = strings.Join(names, ", ")
+	case a.Other > 0:
+		v.Announced = "unread"
+	default:
+		v.Announced = "none"
+	}
 }
 
 func (v *view) show(key stellar.Key) {
