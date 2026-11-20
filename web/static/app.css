@@ -160,7 +160,7 @@ dt { color: var(--muted); font-size: 13px; margin-top: 12px; }
 dd { margin: 2px 0 0; overflow-wrap: anywhere; }
 .mono { font: 13px/1.5 var(--mono); }
 
-details { border-top: 1px solid var(--line); padding: 12px 0; }
+details { border-top: 1px solid var(--line); padding: 12px 0; font-size: 14px; }
 summary { cursor: pointer; color: var(--accent); }
 details p { color: var(--muted); margin: 10px 0; }
 pre { margin: 0; padding: 12px; background: var(--panel); border-radius: var(--radius); white-space: pre-wrap; overflow-wrap: anywhere; }
