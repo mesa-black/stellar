@@ -65,7 +65,7 @@ header { padding: 40px 0 24px; text-align: center; }
   fill: #fff;
   filter: drop-shadow(0 0 .18em #ffffff99);
 }
-.tagline { margin: 6px 0 0; color: var(--muted); }
+.tagline { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
 
 label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
 label code, .about code { font: .9em var(--mono); }
