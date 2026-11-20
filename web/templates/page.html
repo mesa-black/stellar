@@ -52,7 +52,14 @@
     </div>
   </article>
   {{else}}
-  <section class="about">
+  <section class="about{{if .SelfName}} with-sky{{end}}">
+    {{if .SelfName}}
+    <figure class="self">
+      <a href="/?host={{.SelfHost}}" aria-label="The sky of {{.SelfHost}}">{{.SelfSVG}}</a>
+      <figcaption>The sky of this very site: <strong>{{.SelfName}}</strong>, the key {{.SelfHost}} answers with.</figcaption>
+    </figure>
+    {{end}}
+    <div class="words">
     <p>A website proves who it is with a public key. Its fingerprint is 43 characters nobody reads. Stellar draws those characters as a constellation with a name, so a change is something you can see.</p>
     <ol>
       <li>Stellar asks the site for its certificate and hashes the public key inside.</li>
@@ -60,6 +67,7 @@
       <li>Your browser remembers the sky. Come back later and it tells you whether it is still the same.</li>
     </ol>
     <p>A site name shows the sky of the key that site answers with. A document signed with other keys has another sky: to see that one, paste the <code>SHA256:</code> line the document prints.</p>
+    </div>
   </section>
   {{end}}
 

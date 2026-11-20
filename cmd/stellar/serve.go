@@ -30,6 +30,9 @@ func serve(args []string) error {
 			return fmt.Errorf("-url %q is not an http(s) address", *base)
 		}
 		site.BaseURL = strings.TrimRight(u.Scheme+"://"+u.Host+u.Path, "/")
+		// The home page shows the site's own sky: fetch it before the first
+		// visitor comes.
+		go site.RefreshSelf()
 	}
 
 	srv := &http.Server{

@@ -224,6 +224,38 @@ func TestHomeFingerprint(t *testing.T) {
 	}
 }
 
+// The empty page shows the sky of the site's own key, once it is known, and
+// never waits for it.
+func TestHomeSelfSky(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	h := s.Handler()
+	if strings.Contains(get(t, h, "/").Body.String(), `class="self"`) {
+		t.Error("a site that does not know its address shows a sky of its own")
+	}
+
+	s.BaseURL = "https://stellar.example"
+	s.RefreshSelf()
+	body := get(t, h, "/").Body.String()
+	name := stellar.New(sha256.Sum256([]byte("stellar.example"))).Name
+	for _, want := range []string{`class="self"`, "<svg", name, `href="/?host=stellar.example"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the empty page lacks %q", want)
+		}
+	}
+	if strings.Contains(get(t, h, "/?host=example.com").Body.String(), `class="self"`) {
+		t.Error("a result page also shows the site's own sky")
+	}
+
+	// A site whose own key cannot be fetched still serves its page.
+	down := New(fakeLookup(&calls))
+	down.BaseURL = "https://down.example"
+	down.RefreshSelf()
+	if rec := get(t, down.Handler(), "/"); rec.Code != 200 || strings.Contains(rec.Body.String(), `class="self"`) {
+		t.Errorf("status %d", rec.Code)
+	}
+}
+
 func TestHomeErrors(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()

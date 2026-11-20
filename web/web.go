@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/mesa-black/stellar"
@@ -51,6 +52,8 @@ type Server struct {
 	lookup Lookup
 	now    func() time.Time
 	slots  chan struct{}
+	// selfBusy is set while the site's own key is being fetched again.
+	selfBusy atomic.Bool
 
 	mu    sync.Mutex
 	cache map[string]cached
@@ -110,6 +113,12 @@ type view struct {
 	SVG         template.HTML
 	// ShareURL opens Threema with a message about this sky, ready to edit.
 	ShareURL string
+
+	// Set on the empty page, when the site knows its own key: the sky of the
+	// very site being read.
+	SelfHost string
+	SelfName string
+	SelfSVG  template.HTML
 }
 
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
@@ -138,7 +147,59 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 			v.share(s.BaseURL)
 		}
 	}
+	if v.Name == "" && v.Error == "" {
+		s.showSelf(&v)
+	}
 	render(w, status, v)
+}
+
+// selfHost is the site's own host name, from its public address.
+func (s *Server) selfHost() string {
+	u, err := url.Parse(s.BaseURL)
+	if err != nil {
+		return ""
+	}
+	return u.Hostname()
+}
+
+// showSelf puts the sky of the site's own key on the empty page. It never
+// makes a visitor wait: it shows what the cache holds, however old, and
+// fetches the key again in the background when that is stale or missing. The
+// first visitor after a start sees the page without it.
+func (s *Server) showSelf(v *view) {
+	host := s.selfHost()
+	if host == "" {
+		return
+	}
+	s.mu.Lock()
+	hit, ok := s.cache[host]
+	s.mu.Unlock()
+	if !ok || s.now().Sub(hit.at) >= cacheTTL {
+		go s.RefreshSelf()
+	}
+	if !ok {
+		return
+	}
+	c := stellar.New(hit.key.Digest)
+	v.SelfHost, v.SelfName = host, c.Name
+	v.SelfSVG = template.HTML(c.SVG(640, hit.key.Fingerprint()))
+}
+
+// RefreshSelf fetches the site's own key into the cache. One at a time.
+func (s *Server) RefreshSelf() {
+	host := s.selfHost()
+	if host == "" || !s.selfBusy.CompareAndSwap(false, true) {
+		return
+	}
+	defer s.selfBusy.Store(false)
+	key, err := s.lookup(context.Background(), host)
+	if err != nil {
+		return
+	}
+	key.Label = host
+	s.mu.Lock()
+	s.cache[host] = cached{key, s.now()}
+	s.mu.Unlock()
 }
 
 func (s *Server) key(w http.ResponseWriter, r *http.Request) {
