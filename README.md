@@ -73,8 +73,8 @@ Key:         test@stellar (ssh-ed25519)
 
 | Flag | Effect |
 | --- | --- |
-| `-o file.svg` | Write an SVG instead of drawing in the terminal (`-o -` for standard output). |
-| `-size 640` | Width and height of the SVG, in pixels. |
+| `-o file.svg` | Write an SVG instead of drawing in the terminal (`-o -` for standard output). A name ending in `.png` writes a PNG, without the name and fingerprint. |
+| `-size 640` | Width and height of the picture, in pixels. |
 | `-host name[:port]` | Fetch the key from a TLS server. The port defaults to 443. |
 | `-insecure` | With `-host`, skip certificate verification. |
 
@@ -102,6 +102,7 @@ stellar serve -addr :8080 # or straight from the binary
 | --- | --- |
 | `/` and `/?host=example.com` | The page. A whole URL may be pasted; only its host name is kept. A `SHA256:` fingerprint in the same field draws that key directly, with nothing fetched. |
 | `/sky/example.com.svg` | The constellation as an image, to embed elsewhere. `?size=` sets its side, from 64 to 2048 pixels. |
+| `/card/example.com.png` | The same sky as a 1200 × 630 picture, for the preview shown under a shared link. Pages name it in their `og:image`. |
 | `POST /key` | The constellation of a pasted public key, certificate or fingerprint. |
 | `/healthz` | Liveness probe. |
 

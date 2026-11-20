@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{if .Name}}{{.Name}} · {{end}}Stellar</title>
 <meta name="description" content="{{.S "meta.description"}}">
-<link rel="stylesheet" href="/static/app.css">
+{{if .CardHost}}<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stellar">
+<meta property="og:title" content="{{if .Name}}{{.Name}} · {{.Host}}{{else}}Stellar · {{.S "tagline"}}{{end}}">
+<meta property="og:description" content="{{.S "meta.description"}}">
+<meta property="og:image" content="{{.Base}}/card/{{.CardHost}}.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+{{end}}<link rel="stylesheet" href="/static/app.css">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <script src="/static/app.js" defer></script>
 </head>

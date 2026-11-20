@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/mesa-black/stellar"
@@ -43,8 +44,8 @@ func run() error {
 	}
 	host := flag.String("host", "", "fetch the key from a TLS server, `name[:port]`")
 	insecure := flag.Bool("insecure", false, "with -host, do not verify the certificate chain")
-	out := flag.String("o", "", "write an SVG to `file` (- for standard output)")
-	size := flag.Int("size", 640, "SVG width and height, in pixels")
+	out := flag.String("o", "", "write an SVG to `file`, or a PNG if it ends in .png (- for SVG on standard output)")
+	size := flag.Int("size", 640, "width and height of the picture, in pixels")
 	flag.Usage = func() {
 		fmt.Fprint(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -62,7 +63,13 @@ func run() error {
 		return err
 	}
 	if *out != "" {
-		if err := os.WriteFile(*out, []byte(c.SVG(*size, key.Fingerprint())), 0o644); err != nil {
+		// The extension chooses the format: a .png is a picture without
+		// text, anything else the SVG with its name and fingerprint.
+		data := []byte(c.SVG(*size, key.Fingerprint()))
+		if strings.HasSuffix(strings.ToLower(*out), ".png") {
+			data = c.PNG(*size, *size)
+		}
+		if err := os.WriteFile(*out, data, 0o644); err != nil {
 			return err
 		}
 	} else {

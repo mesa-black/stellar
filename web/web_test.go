@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"image/png"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -432,6 +433,40 @@ func TestSky(t *testing.T) {
 	}
 	if rec := get(t, h, "/sky/localhost.svg"); rec.Code != 400 {
 		t.Errorf("localhost: status %d", rec.Code)
+	}
+}
+
+// A link to a page is illustrated by a picture of the sky it shows, when the
+// site knows the absolute address to give for it.
+func TestCard(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	h := s.Handler()
+
+	rec := get(t, h, "/card/example.com.png")
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/png" {
+		t.Fatalf("status %d, type %q", rec.Code, rec.Header().Get("Content-Type"))
+	}
+	img, err := png.Decode(rec.Body)
+	if err != nil || img.Bounds().Dx() != 1200 || img.Bounds().Dy() != 630 {
+		t.Fatalf("picture: %v", err)
+	}
+	if rec := get(t, h, "/card/localhost.png"); rec.Code != 400 {
+		t.Errorf("localhost: status %d", rec.Code)
+	}
+	if rec := get(t, h, "/card/example.com"); rec.Code != 404 {
+		t.Errorf("no extension: status %d", rec.Code)
+	}
+	if strings.Contains(get(t, h, "/?host=example.com").Body.String(), "og:image") {
+		t.Error("a site that does not know its address names a picture")
+	}
+
+	s.BaseURL = "https://stellar.example"
+	if body := get(t, h, "/?host=example.com").Body.String(); !strings.Contains(body, `property="og:image" content="https://stellar.example/card/example.com.png"`) {
+		t.Error("a host's page does not name its picture")
+	}
+	if body := get(t, h, "/").Body.String(); !strings.Contains(body, `content="https://stellar.example/card/stellar.example.png"`) {
+		t.Error("the empty page does not name the site's own picture")
 	}
 }
 

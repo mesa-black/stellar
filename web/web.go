@@ -36,6 +36,9 @@ const (
 	maxLookups   = 16
 	lookupBudget = 8 * time.Second
 	maxKeyBytes  = 64 << 10
+	// The size link previews expect, and how many pictures are kept.
+	cardWidth, cardHeight = 1200, 630
+	cardsMax              = 128
 )
 
 // Lookup returns what a host shows of itself: its key and how it negotiates.
@@ -57,6 +60,8 @@ type Server struct {
 
 	mu    sync.Mutex
 	cache map[string]cached
+	// cards holds the preview pictures already drawn, by key.
+	cards map[[32]byte][]byte
 }
 
 type cached struct {
@@ -72,6 +77,7 @@ func New(lookup Lookup) *Server {
 		now:    time.Now,
 		slots:  make(chan struct{}, maxLookups),
 		cache:  map[string]cached{},
+		cards:  map[[32]byte][]byte{},
 	}
 }
 
@@ -82,6 +88,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("POST /key", s.key)
 	mux.HandleFunc("GET /sky/{file}", s.sky)
+	mux.HandleFunc("GET /card/{file}", s.card)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "ok\n") })
 	return headers(mux)
@@ -108,6 +115,8 @@ type view struct {
 	Langs     []langLink
 	// Base is the site's public address, empty when unknown.
 	Base string
+	// CardHost is the host whose picture illustrates a link to this page.
+	CardHost string
 
 	Query string // what the visitor typed, echoed in the form
 	Error string
@@ -214,6 +223,14 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	if v.Name == "" && v.Error == "" {
 		s.showSelf(&v)
 	}
+	// A link to a host's page is illustrated by that host's sky; a link to
+	// the empty page, by the site's own. Only a site that knows its public
+	// address can name a picture: the address must be absolute.
+	if v.Base != "" {
+		if v.CardHost = v.Host; v.CardHost == "" && v.Name == "" {
+			v.CardHost = s.selfHost()
+		}
+	}
 	v.finish()
 	render(w, status, v)
 }
@@ -304,6 +321,39 @@ func (s *Server) sky(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Cache-Control", "public, max-age=300")
 	io.WriteString(w, stellar.New(key.Digest).SVG(size, key.Fingerprint()))
+}
+
+// card serves the picture a messaging application shows under a link to a
+// host's page: /card/example.com.png. Drawing one takes some forty
+// milliseconds, so each is drawn once per key and kept.
+func (s *Server) card(w http.ResponseWriter, r *http.Request) {
+	name, ok := strings.CutSuffix(r.PathValue("file"), ".png")
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	_, seen, err := s.resolve(r.Context(), name)
+	if err != nil {
+		key, status := explain(err)
+		http.Error(w, message("en", key), status)
+		return
+	}
+	digest := seen.Key.Digest
+	s.mu.Lock()
+	picture, ok := s.cards[digest]
+	s.mu.Unlock()
+	if !ok {
+		picture = stellar.New(digest).PNG(cardWidth, cardHeight)
+		s.mu.Lock()
+		if len(s.cards) >= cardsMax {
+			clear(s.cards)
+		}
+		s.cards[digest] = picture
+		s.mu.Unlock()
+	}
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	w.Write(picture)
 }
 
 func (v *view) show(key stellar.Key) {
