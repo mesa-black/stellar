@@ -37,6 +37,10 @@ func TestDNSQueryAndAnswers(t *testing.T) {
 	if !strings.Contains(string(query), "\x04_443\x04_tcp\x07example\x03com\x00\x00\x34\x00\x01") {
 		t.Errorf("question = %q", query)
 	}
+	// It asks whether the answer is authenticated: AD in the header, DO in EDNS0.
+	if query[3]&0x20 == 0 || query[len(query)-4]&0x80 == 0 {
+		t.Errorf("query does not ask for authenticated data: %x", query)
+	}
 
 	key := digestOf(1)
 	tlsa := append([]byte{3, 1, 1}, key[:]...)

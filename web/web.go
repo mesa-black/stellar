@@ -150,6 +150,8 @@ type view struct {
 	// "unread" (records of a form Stellar does not read), "none", or empty
 	// when the DNS gave no usable answer.
 	Announced string
+	// AnnouncedSigned says the resolver authenticated the DNS answer (DNSSEC).
+	AnnouncedSigned bool
 	// AnnouncedNames are the skies announced, when this one is not.
 	AnnouncedNames string
 	// Record is the DNS record that would announce this key.
@@ -405,6 +407,7 @@ func (v *view) announce(host string, seen stellar.Host) {
 		return
 	}
 	v.Record = stellar.Record(host, seen.Key.Digest)
+	v.AnnouncedSigned = a.Signed
 	switch {
 	case a.Announces(seen.Key.Digest):
 		v.Announced = "yes"

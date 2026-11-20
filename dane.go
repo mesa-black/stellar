@@ -25,10 +25,13 @@ import (
 // takes are written here: one question, over UDP, then TCP if the answer was
 // cut short.
 //
-// What an answer is worth: this program does not validate DNSSEC. A record
-// says what the DNS said to the resolver this machine uses, no more. It is a
-// second road, independent of the certificate authorities — which is the
-// point — but it is as trustworthy as that road.
+// What an answer is worth: this program does not validate DNSSEC itself. It
+// asks the resolver this machine uses whether it did, and reports the answer
+// (the AD flag, RFC 4035 3.2.3). A resolver that validates and a zone that is
+// signed give Signed; anything else gives a record that says what the DNS
+// said, no more. Either way this is a second road, independent of the
+// certificate authorities — which is the point — and as trustworthy as that
+// resolver and the path to it.
 
 // Announcement is what the DNS says about the key a host should present.
 type Announcement struct {
@@ -38,6 +41,10 @@ type Announcement struct {
 	Keys [][32]byte
 	// Other counts the TLSA records of any other form: published, not read.
 	Other int
+	// Signed reports that the resolver marked its answer as authenticated:
+	// it checked the zone's DNSSEC signatures. False when the zone is not
+	// signed, and also when the resolver does not validate or does not say.
+	Signed bool
 }
 
 // Announces reports whether a digest is among the announced keys.
@@ -82,7 +89,8 @@ func LookupAnnouncement(ctx context.Context, host string) (Announcement, error) 
 			last = err
 			continue
 		}
-		var out Announcement
+		// dnsAnswers checked the header is there. AD: authenticated data.
+		out := Announcement{Signed: answer[3]&0x20 != 0}
 		for _, r := range records {
 			// usage, selector, matching type, then the data.
 			if len(r) == 3+32 && (r[0] == 1 || r[0] == 3) && r[1] == 1 && r[2] == 1 {
@@ -115,7 +123,9 @@ func resolvers() []string {
 }
 
 // dnsQuery builds a query for one name and one type, recursion desired, with
-// an EDNS0 record that lets the answer exceed 512 bytes over UDP.
+// an EDNS0 record that lets the answer exceed 512 bytes over UDP. It asks to
+// be told whether the answer was authenticated, both ways a resolver may
+// expect: the AD flag in the header (RFC 6840 5.7) and DNSSEC OK in EDNS0.
 func dnsQuery(name string, qtype uint16) (msg []byte, id uint16, err error) {
 	var raw [2]byte
 	if _, err := rand.Read(raw[:]); err != nil {
@@ -123,7 +133,7 @@ func dnsQuery(name string, qtype uint16) (msg []byte, id uint16, err error) {
 	}
 	id = binary.BigEndian.Uint16(raw[:])
 	msg = binary.BigEndian.AppendUint16(msg, id)
-	msg = binary.BigEndian.AppendUint16(msg, 0x0100) // recursion desired
+	msg = binary.BigEndian.AppendUint16(msg, 0x0120) // recursion desired, authenticated data
 	msg = append(msg, 0, 1, 0, 0, 0, 0, 0, 1)        // one question, one additional
 	for _, label := range strings.Split(name, ".") {
 		if len(label) == 0 || len(label) > 63 {
@@ -135,8 +145,8 @@ func dnsQuery(name string, qtype uint16) (msg []byte, id uint16, err error) {
 	msg = append(msg, 0)
 	msg = binary.BigEndian.AppendUint16(msg, qtype)
 	msg = binary.BigEndian.AppendUint16(msg, 1) // class IN
-	// OPT: root name, type 41, UDP payload 1232, no flags, no options.
-	msg = append(msg, 0, 0, 41, 0x04, 0xd0, 0, 0, 0, 0, 0, 0)
+	// OPT: root name, type 41, UDP payload 1232, the DO flag, no options.
+	msg = append(msg, 0, 0, 41, 0x04, 0xd0, 0, 0, 0x80, 0, 0, 0)
 	return msg, id, nil
 }
 

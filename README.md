@@ -111,7 +111,7 @@ stellar serve -addr :8080 # or straight from the binary
 
 **What the owner announces.** A domain can say in its DNS which key to expect from it: a TLSA record (DANE, RFC 6698) at `_443._tcp.<host>`. The form everyone is advised to publish, `3 1 1`, carries the SHA-256 of the key, which is exactly the digest a sky is drawn from. So Stellar reads that record as a sky: under a site's own, the page says whether the owner announces this key, another one (named), or none, in which case it shows the record to publish. `stellar -host` prints the same on its `Announced:` line.
 
-Stellar does not validate DNSSEC: the answer is what the DNS said to the resolver the server uses, a second road independent of the certificate authorities, and as trustworthy as that road. Go's resolver does not ask for TLSA records, so the question is written out in `dane.go`; it goes to the machine's own resolver and to no address a visitor chose.
+Stellar does not validate DNSSEC itself: it asks the resolver the server uses whether it did (the answer's AD flag) and says so. "Signed" means that resolver checked the zone's signatures; without it, the record is what the DNS said and no more. Either way it is a second road, independent of the certificate authorities, and as trustworthy as that resolver. Go's resolver does not ask for TLSA records, so the question is written out in `dane.go`; it goes to the machine's own resolver and to no address a visitor chose.
 
 **Keeping the announcement true.** A certificate that renews with a new key makes yesterday's record wrong. `stellar announce` closes that gap: it reads the key each host serves, as a visitor would, and makes the host's `TLSA 3 1 1` record say the same.
 

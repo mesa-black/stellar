@@ -48,6 +48,8 @@ func announcementOf(host string) *stellar.Announcement {
 	switch host {
 	case "announced.example":
 		return &stellar.Announcement{Keys: [][32]byte{sha256.Sum256([]byte("old.example")), sha256.Sum256([]byte(host))}}
+	case "signed.example":
+		return &stellar.Announcement{Keys: [][32]byte{sha256.Sum256([]byte(host))}, Signed: true}
 	case "stale.example":
 		return &stellar.Announcement{Keys: [][32]byte{sha256.Sum256([]byte("old.example"))}}
 	case "unread.example":
@@ -397,6 +399,11 @@ func TestAnnounced(t *testing.T) {
 
 	if body := page("announced.example"); !strings.Contains(body, "Announced by the owner: yes.") || strings.Contains(body, "IN TLSA") {
 		t.Error("an announced key is not said to be, or its owner is told to announce it")
+	} else if strings.Contains(body, "the record is signed.") || !strings.Contains(body, "the record is not signed") {
+		t.Error("an unauthenticated answer is said to be signed")
+	}
+	if body := page("signed.example"); !strings.Contains(body, "Announced by the owner: yes.") || !strings.Contains(body, "And the record is signed.") {
+		t.Error("an authenticated answer is not said to be signed")
 	}
 	stale := stellar.New(sha256.Sum256([]byte("old.example"))).Name
 	if body := page("stale.example"); !strings.Contains(body, "Announced by the owner: another key.") || !strings.Contains(body, stale) {

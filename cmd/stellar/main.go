@@ -105,7 +105,11 @@ func run() error {
 		if a := seen.Announcement; a != nil {
 			switch {
 			case a.Announces(key.Digest):
-				fmt.Println("Announced:   yes, by a DANE record in the domain's DNS (not DNSSEC-validated here)")
+				if a.Signed {
+					fmt.Println("Announced:   yes, by a DANE record in the domain's DNS, signed (DNSSEC, checked by this machine's resolver)")
+				} else {
+					fmt.Println("Announced:   yes, by a DANE record in the domain's DNS (not signed, or this machine's resolver does not check DNSSEC)")
+				}
 			case len(a.Keys) > 0:
 				names := make([]string, len(a.Keys))
 				for i, k := range a.Keys {

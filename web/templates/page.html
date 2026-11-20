@@ -57,8 +57,8 @@
         {{.T "pq.key"}}
       </p>
       {{end}}
-      {{if eq .Announced "yes"}}<p class="quantum" data-pq="yes">{{.T "dane.yes"}} {{.T "dane.trust"}}</p>
-      {{else if eq .Announced "other"}}<p class="quantum" data-pq="no">{{.T "dane.other" .AnnouncedNames}} {{.T "dane.trust"}}</p>
+      {{if eq .Announced "yes"}}<p class="quantum" data-pq="yes">{{.T "dane.yes"}} {{if .AnnouncedSigned}}{{.T "dane.signed"}}{{else}}{{.T "dane.trust"}}{{end}}</p>
+      {{else if eq .Announced "other"}}<p class="quantum" data-pq="no">{{.T "dane.other" .AnnouncedNames}} {{if .AnnouncedSigned}}{{.T "dane.signed"}}{{else}}{{.T "dane.trust"}}{{end}}</p>
       {{end}}
       <p class="share">
         <span class="over">{{.T "share.label"}}</span>
