@@ -15,9 +15,10 @@ test: ## Check formatting, vet and run the tests
 image: ## Build the image (runs the tests first)
 	podman build -t $(IMAGE) .
 
-serve: image ## Serve the website on http://localhost:8099 (PORT=… to change)
+serve: image ## Serve the website on http://localhost:8099 (PORT=…, URL=https://… for share links)
 	podman run --rm -i $(TTY) --name stellar --read-only --cap-drop=ALL \
-		--security-opt=no-new-privileges -p 127.0.0.1:$(PORT):8080 $(IMAGE)
+		--security-opt=no-new-privileges -p 127.0.0.1:$(PORT):8080 $(IMAGE) \
+		serve -addr :8080 $(if $(URL),-url $(URL))
 
 stop: ## Stop the website started by `make serve`
 	-podman stop stellar

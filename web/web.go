@@ -12,6 +12,7 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -41,6 +42,12 @@ type Lookup func(ctx context.Context, host string) (stellar.Key, error)
 
 // Server is the website. The zero value is not usable; call New.
 type Server struct {
+	// BaseURL is the public address of the site, without a trailing slash,
+	// e.g. "https://stellar.example". When set, shared messages end with a
+	// link back to the sky; when empty, they carry no link, since an address
+	// guessed from the request could be a local one.
+	BaseURL string
+
 	lookup Lookup
 	now    func() time.Time
 	slots  chan struct{}
@@ -101,6 +108,8 @@ type view struct {
 	Kind        string
 	Label       string
 	SVG         template.HTML
+	// ShareURL opens Threema with a message about this sky, ready to edit.
+	ShareURL string
 }
 
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
@@ -114,6 +123,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		} else {
 			v.Query, v.Host = host, host
 			v.show(key)
+			v.share(s.BaseURL)
 		}
 	}
 	render(w, status, v)
@@ -128,6 +138,7 @@ func (s *Server) key(w http.ResponseWriter, r *http.Request) {
 		v.Error, status = "That is not a public key Stellar can read: "+err.Error()+".", http.StatusUnprocessableEntity
 	} else {
 		v.show(key)
+		v.share("")
 	}
 	render(w, status, v)
 }
@@ -162,6 +173,24 @@ func (v *view) show(key stellar.Key) {
 	v.Label = key.Label
 	// SVG escapes the only free text it embeds, the caption.
 	v.SVG = template.HTML(c.SVG(640, key.Fingerprint()))
+}
+
+// share builds the Threema link. It is a plain link: nothing loads from
+// Threema until someone clicks, and the app opens with the text written, to
+// edit before sending.
+func (v *view) share(baseURL string) {
+	var text strings.Builder
+	if v.Host != "" {
+		text.WriteString("Stellar · " + v.Host + "\n\nThe sky of its key is " + v.Name + ".\n")
+	} else {
+		text.WriteString("Stellar · " + v.Name + "\n\n")
+	}
+	text.WriteString(v.Fingerprint)
+	if v.Host != "" && baseURL != "" {
+		text.WriteString("\n\n" + baseURL + "/?host=" + url.QueryEscape(v.Host))
+	}
+	// %20 rather than +, which not every client reads back as a space.
+	v.ShareURL = "https://threema.id/compose?text=" + strings.ReplaceAll(url.QueryEscape(text.String()), "+", "%20")
 }
 
 func render(w http.ResponseWriter, status int, v view) {

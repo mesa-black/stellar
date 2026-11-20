@@ -80,6 +80,8 @@ stellar serve -addr :8080 # or straight from the binary
 
 **Remembering a sky.** The page stores, in the visitor's browser only (`localStorage`), the fingerprint each host showed last. On a later visit it says whether the sky is the same or has changed. A change is not proof of an attack: many sites generate a new key at every certificate renewal, so their sky changes every few weeks. Sites that keep their key across renewals keep their sky.
 
+**Sharing a sky.** Once a sky is drawn, a "Send on Threema" link opens Threema with a message naming the host, its sky and its fingerprint, to edit before sending. It is a plain link: nothing loads from Threema until someone clicks. Start the site with its public address (`stellar serve -url https://stellar.example`, or `make serve URL=…`) and the message ends with a link back to the sky; without it, the message carries no link.
+
 **What the server agrees to connect to.** The site connects to hosts named by strangers, so it is restricted:
 
 - Only DNS names are accepted: no IP address, no port, no single-label name. The port is always 443.

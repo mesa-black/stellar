@@ -38,6 +38,10 @@
         <dt>Kind</dt><dd>{{.Kind}}</dd>
         <dt>Fingerprint</dt><dd class="mono">{{.Fingerprint}}</dd>
       </dl>
+      <p class="share">
+        <span class="over">Share this sky</span>
+        <a class="button" href="{{.ShareURL}}" rel="noopener noreferrer" target="_blank">Send on Threema</a>
+      </p>
       {{if .Host}}
       <details>
         <summary>Embed this sky</summary>

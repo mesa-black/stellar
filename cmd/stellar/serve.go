@@ -6,8 +6,10 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,11 +20,21 @@ import (
 func serve(args []string) error {
 	fs := flag.NewFlagSet("stellar serve", flag.ExitOnError)
 	addr := fs.String("addr", "127.0.0.1:8080", "listen on `host:port`")
+	base := fs.String("url", "", "public `address` of the site, e.g. https://stellar.example; shared messages link back to it")
 	fs.Parse(args)
+
+	site := web.New(web.PublicLookup)
+	if *base != "" {
+		u, err := url.Parse(*base)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return fmt.Errorf("-url %q is not an http(s) address", *base)
+		}
+		site.BaseURL = strings.TrimRight(u.Scheme+"://"+u.Host+u.Path, "/")
+	}
 
 	srv := &http.Server{
 		Addr:              *addr,
-		Handler:           web.New(web.PublicLookup).Handler(),
+		Handler:           site.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      20 * time.Second,

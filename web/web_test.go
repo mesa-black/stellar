@@ -155,6 +155,49 @@ func TestHomeShowsHost(t *testing.T) {
 	}
 }
 
+func TestShare(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	h := s.Handler()
+	name := stellar.New(sha256.Sum256([]byte("example.com"))).Name
+
+	shared := func(body string) string {
+		t.Helper()
+		_, rest, ok := strings.Cut(body, `href="https://threema.id/compose?text=`)
+		if !ok {
+			t.Fatal("no Threema link")
+		}
+		raw, _, _ := strings.Cut(rest, `"`)
+		text, err := url.QueryUnescape(strings.ReplaceAll(raw, "&amp;", "&"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(raw, "+") {
+			t.Error("spaces are encoded as +")
+		}
+		return text
+	}
+
+	// Without a public address, the message names the sky and carries no link.
+	text := shared(get(t, h, "/?host=example.com").Body.String())
+	if !strings.Contains(text, "example.com") || !strings.Contains(text, name) || !strings.Contains(text, "SHA256:") {
+		t.Errorf("message = %q", text)
+	}
+	if strings.Contains(text, "http") {
+		t.Errorf("message links somewhere without a public address: %q", text)
+	}
+
+	s.BaseURL = "https://stellar.example"
+	text = shared(get(t, h, "/?host=example.com").Body.String())
+	if !strings.HasSuffix(text, "https://stellar.example/?host=example.com") {
+		t.Errorf("message = %q", text)
+	}
+
+	if strings.Contains(get(t, h, "/").Body.String(), "threema") {
+		t.Error("the empty page offers to share")
+	}
+}
+
 func TestHomeErrors(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()
