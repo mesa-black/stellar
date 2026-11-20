@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="640" height="640" role="img">
-<title>Subeve Zidu</title>
+<title>Subevia Zidensis</title>
 <desc>Stellar v1 constellation of SHA256:kqckL3tw6x8R1HqM3pohRjFi/6wO3yM2MXYGcV0/2qc</desc>
 <defs>
 <radialGradient id="sky" cx="50%" cy="42%" r="75%"><stop offset="0" stop-color="#16204a"/><stop offset="1" stop-color="#05060f"/></radialGradient>
@@ -107,6 +107,6 @@
 <circle cx="493.9" cy="551.4" r="32.0" fill="url(#glow4)"/>
 <circle cx="493.9" cy="551.4" r="8.0" fill="#ff7b6b"/>
 <circle cx="493.9" cy="551.4" r="3.6" fill="#fff"/>
-<text x="500" y="935" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="34" letter-spacing="10" fill="#e8ecff">SUBEVE ZIDU</text>
+<text x="500" y="935" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="34" letter-spacing="10" fill="#e8ecff">SUBEVIA ZIDENSIS</text>
 <text x="500" y="972" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" fill="#e8ecff" fill-opacity=".6">SHA256:kqckL3tw6x8R1HqM3pohRjFi/6wO3yM2MXYGcV0/2qc</text>
 </svg>

@@ -61,7 +61,8 @@ type Edge struct{ A, B int }
 // Constellation is the drawing derived from a digest.
 type Constellation struct {
 	Digest [32]byte
-	// Name is a pronounceable two-word name, meant to be read aloud.
+	// Name is an invented, Latin-sounding two-word name, meant to be read
+	// aloud. It is not the name of a real constellation.
 	Name  string
 	Stars []Star
 	Edges []Edge
@@ -150,23 +151,30 @@ const (
 	vowels     = "aeiou"
 )
 
-// name draws a three-syllable word and a two-syllable word, each syllable a
-// consonant followed by a vowel: about 31.6 bits in total.
+// The endings give the name its Latin sound: the first word reads as a noun,
+// the second as an epithet, as in the names astronomers give constellations.
+var (
+	nounEndings    = [8]string{"a", "us", "um", "is", "ix", "or", "ax", "ia"}
+	epithetEndings = [8]string{"alis", "aris", "ensis", "inus", "ianus", "osus", "atus", "icus"}
+)
+
+// name draws an invented, Latin-sounding name of two words, such as
+// "Merebus Vovalis": a noun (consonant, vowel, consonant, vowel, consonant,
+// ending) and an epithet (consonant, vowel, consonant, ending). There are
+// about 8.4 billion names, or 33 bits. None is the name of a real
+// constellation, except by accident.
 func name(s *stream) string {
-	out := make([]byte, 0, 11)
-	for _, syllables := range []int{3, 2} {
-		if len(out) > 0 {
-			out = append(out, ' ')
-		}
-		for i := 0; i < syllables; i++ {
-			c := consonants[s.uintn(len(consonants))]
-			if i == 0 {
-				c -= 'a' - 'A'
-			}
-			out = append(out, c, vowels[s.uintn(len(vowels))])
-		}
-	}
-	return string(out)
+	consonant := func() byte { return consonants[s.uintn(len(consonants))] }
+	vowel := func() byte { return vowels[s.uintn(len(vowels))] }
+	upper := func(c byte) byte { return c - 'a' + 'A' }
+
+	noun := []byte{upper(consonant()), vowel(), consonant(), vowel(), consonant()}
+	noun = append(noun, nounEndings[s.uintn(len(nounEndings))]...)
+
+	epithet := []byte{upper(consonant()), vowel(), consonant()}
+	epithet = append(epithet, epithetEndings[s.uintn(len(epithetEndings))]...)
+
+	return string(noun) + " " + string(epithet)
 }
 
 func distSq(a, b Star) int {

@@ -74,8 +74,8 @@ func TestGolden(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := New(key.Digest)
-	if c.Name != "Subeve Zidu" {
-		t.Errorf("name = %q, want %q", c.Name, "Subeve Zidu")
+	if c.Name != "Subevia Zidensis" {
+		t.Errorf("name = %q, want %q", c.Name, "Subevia Zidensis")
 	}
 	sum := sha256.Sum256([]byte(fmt.Sprintf("%v|%v|%v", c.Stars, c.Edges, c.Field)))
 	const want = "0e120480ac629b16c7b76d31c6ff820b8d912644a70ba449903baea25c3a8f3e"
@@ -160,8 +160,8 @@ func TestNamesRarelyCollide(t *testing.T) {
 	for i := 0; i < 5000; i++ {
 		name := New(digestOf(i)).Name
 		if j, ok := seen[name]; ok {
-			// 5000 draws out of 80^5 names: a collision has odds of
-			// about 1 in 260, low enough to flag.
+			// 5000 draws out of 8.4 billion names: a collision has odds
+			// of about 1 in 670, low enough to flag.
 			t.Errorf("digests %d and %d share the name %q", j, i, name)
 		}
 		seen[name] = i

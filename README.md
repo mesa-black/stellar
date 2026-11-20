@@ -2,7 +2,7 @@
 
 Stellar draws a public key as a constellation, so that people can compare two keys by looking at a small sky instead of reading 43 characters of base64.
 
-![The constellation "Subeve Zidu"](docs/example.svg)
+![The constellation "Subevia Zidensis"](docs/example.svg)
 
 It is a visual fingerprint, like OpenSSH randomart. It is **not** a cipher and it is not a new cryptosystem: all the security comes from the SHA-256 digest of the key, and Stellar only changes how that digest is shown. The project is unrelated to the Stellar payment network.
 
@@ -47,8 +47,8 @@ By default the constellation is drawn in the terminal:
 │            ⢀⡞⠁             ⠙⠲⣄⡀  ⠈⣇    │
 │           ⡴⠋                  ⠙⠲⣄⡀⢹⡀   │
 │          *⠁                      ⠙⠺•   │
-└─[ Subeve Zidu ]────────────────────────┘
-Name:        Subeve Zidu
+└─[ Subevia Zidensis ]───────────────────┘
+Name:        Subevia Zidensis
 Fingerprint: SHA256:kqckL3tw6x8R1HqM3pohRjFi/6wO3yM2MXYGcV0/2qc
 Key:         test@stellar (ssh-ed25519)
 ```
@@ -117,10 +117,20 @@ A certificate and the public key it certifies give the same constellation. A ren
 
 Stellar refuses private keys.
 
+## Names
+
+Every sky has a name, such as *Subevia Zidensis* or *Merebis Vovinus*. The names are **invented**: they are derived from the key, like the stars, and none is the name of a real constellation. The drawings do not match real constellations either.
+
+They are built to sound like the Latin names astronomers use (*Corona Borealis*, *Piscis Austrinus*): a noun with a Latin ending (`-us`, `-ia`, `-ix`…) followed by an epithet (`-alis`, `-ensis`, `-inus`…). The point is a name that can be said aloud, over the phone or across a desk: "on my side your site is Merebis Vovinus; and on yours?"
+
+Real constellation names would not do. There are 88 official ones, so unrelated keys would share a name all the time, and making a key that is called *Orion* like yours would take a few dozen tries. The invented scheme has about 8.4 billion names (33 bits). That makes an accidental match unlikely; it does not stop someone who searches for one on purpose (see [Limits](#limits)).
+
+The names have no meaning in Latin, and no care is taken to make noun and epithet agree.
+
 ## Limits
 
 - **The fingerprint is the authority.** A constellation carries fewer bits to the eye than the digest holds. Someone who can generate many keys can search for one whose constellation resembles yours. Use the drawing to notice a change quickly; compare the full fingerprint when it matters.
-- **The name alone is weak.** It holds about 31.6 bits, and a matching name can be found by brute force in minutes. Never accept a key on its name only.
+- **The name alone is weak.** It holds about 33 bits, and a matching name can be found by brute force in minutes. Never accept a key on its name only.
 - **The terminal view is a subset.** It shows the main stars and the edges, not the background stars.
 - **`-insecure` shows what the network presents.** Without verification, the key may come from anyone on the path.
 - **No human study has been run.** How reliably people tell two constellations apart is not measured yet.
@@ -131,7 +141,7 @@ The mapping from digest to constellation is deterministic. All integers below ar
 
 **Stream.** SHAKE256 absorbs the 11 bytes `stellar/v1\0` followed by the 32-byte digest. To draw a uniform integer in `[0, n)`, read 2 bytes as a big-endian integer `v`; if `v >= 65536 - (65536 mod n)`, discard it and read again; otherwise return `v mod n`.
 
-1. **Name.** A word of three syllables, then a word of two. Each syllable is a consonant drawn from `bdfghjklmnprstvz` followed by a vowel drawn from `aeiou`. The first letter of each word is capitalised.
+1. **Name.** Two words. The noun is a consonant, a vowel, a consonant, a vowel, a consonant and a noun ending. The epithet is a consonant, a vowel, a consonant and an epithet ending. Consonants are drawn from `bdfghjklmnprstvz` (`draw(16)`), vowels from `aeiou` (`draw(5)`), noun endings from `a us um is ix or ax ia` (`draw(8)`), epithet endings from `alis aris ensis inus ianus osus atus icus` (`draw(8)`), each list indexed from 0. The first letter of each word is capitalised.
 2. **Star count.** `n = 7 + draw(6)`, so 7 to 12 main stars.
 3. **Main stars.** Until `n` stars are placed: draw `x = draw(64)` and `y = draw(64)`. If the point is closer than 9 grid units to a star already placed (squared distance below 81), discard it. Otherwise draw `magnitude = draw(3)` and `class = draw(5)` and place the star. Magnitude 0 is the brightest; classes run from blue (0) through white, yellow and orange to red (4).
 4. **Tree.** For each star `i` from 1 to `n-1`, sort the stars placed before it by increasing squared distance to `i`, ties broken by lower index. Star 1 joins star 0. Every later star joins candidate number `draw(2)` of that list.

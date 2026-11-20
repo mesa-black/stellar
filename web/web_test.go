@@ -270,7 +270,7 @@ func TestKey(t *testing.T) {
 	}
 
 	rec := post("SHA256:kqckL3tw6x8R1HqM3pohRjFi/6wO3yM2MXYGcV0/2qc")
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Subeve Zidu") {
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Subevia Zidensis") {
 		t.Errorf("fingerprint: status %d", rec.Code)
 	}
 	if !strings.Contains(rec.Body.String(), `data-host=""`) {
