@@ -5,9 +5,11 @@
 #   podman build -t stellar .
 #   podman run --rm -p 127.0.0.1:8080:8080 stellar
 #
+# Docker builds and runs it the same way: replace `podman` with `docker`.
+#
 # Two stages. The build stage is also the project's Go toolchain: the Makefile
 # runs the tests in it (`podman build --target build`), so a workstation needs
-# podman and nothing else.
+# a container engine and nothing else.
 
 # ------------------------------------------------------------------ build
 FROM docker.io/library/golang:1.27-alpine AS build

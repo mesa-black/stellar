@@ -10,7 +10,7 @@ Status: prototype. The mapping is versioned (`v1`) but may still change.
 
 ## Build
 
-Stellar needs Go 1.24 or later and has no dependency outside the standard library. Without Go, `make image` builds everything with podman (see [Container](#container)).
+Stellar needs Go 1.24 or later and has no dependency outside the standard library. Without Go, `make image` builds everything in a container, with Podman or Docker (see [Container](#container)).
 
 ```sh
 go build -o bin/stellar ./cmd/stellar
@@ -67,7 +67,7 @@ Colours are disabled when the output is not a terminal or when `NO_COLOR` is set
 `stellar serve` runs a small website: type a host name, see the sky of the key its certificate carries.
 
 ```sh
-make serve                # builds the image with podman, then http://localhost:8099
+make serve                # builds the image in a container, then http://localhost:8099
 stellar serve -addr :8080 # or straight from the binary
 ```
 
@@ -103,7 +103,20 @@ make serve   # run it, read-only, without capabilities, on 127.0.0.1:8099 (PORT=
 make sky HOST=example.com
 ```
 
-The image is built `FROM scratch` and runs as an unprivileged user. Go is only needed inside the build stage, so a workstation with podman needs nothing else.
+The image is built `FROM scratch` and runs as an unprivileged user. Go is only needed inside the build stage, so a workstation with a container engine needs nothing else.
+
+**Podman or Docker.** Both work, with the same `Dockerfile` and the same commands. The Makefile uses Podman by default; pass `ENGINE=docker` to use Docker:
+
+```sh
+make serve ENGINE=docker
+```
+
+Without `make`, the two commands are:
+
+```sh
+podman build -t stellar .                          # or: docker build -t stellar .
+podman run --rm -p 127.0.0.1:8099:8080 stellar     # or: docker run  --rm -p 127.0.0.1:8099:8080 stellar
+```
 
 ## What is hashed
 
@@ -132,6 +145,7 @@ The names have no meaning in Latin, and no care is taken to make noun and epithe
 - **The fingerprint is the authority.** A constellation carries fewer bits to the eye than the digest holds. Someone who can generate many keys can search for one whose constellation resembles yours. Use the drawing to notice a change quickly; compare the full fingerprint when it matters.
 - **The name alone is weak.** It holds about 33 bits, and a matching name can be found by brute force in minutes. Never accept a key on its name only.
 - **The terminal view is a subset.** It shows the main stars and the edges, not the background stars.
+- **The website sees the key from where the server sits.** It shows the key the site presented to the Stellar server, not the one it presented to your browser. Someone intercepting your own connection is not visible from there. To check what your machine receives, run the command line locally: `stellar -host example.com`.
 - **`-insecure` shows what the network presents.** Without verification, the key may come from anyone on the path.
 - **No human study has been run.** How reliably people tell two constellations apart is not measured yet.
 
@@ -150,7 +164,7 @@ The mapping from digest to constellation is deterministic. All integers below ar
 
 Rendering is not normative, but a `v1` renderer must show every main star with its position, magnitude and class, and every edge.
 
-`TestGolden` pins this mapping. A change that alters the output for an existing digest must bump the version, in the domain separator as well as in `Version`.
+`TestGolden` pins this mapping, and `testdata/v1.json` lists the constellations of 32 digests in full: another implementation of v1 must reproduce every entry. A change that alters the output for an existing digest must bump the version, in the domain separator as well as in `Version`.
 
 ## Library
 
