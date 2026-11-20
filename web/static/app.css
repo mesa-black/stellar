@@ -46,6 +46,19 @@ header { padding: 40px 0 24px; text-align: center; }
   letter-spacing: .32em;
   text-transform: uppercase;
   margin-right: -.32em;
+  /* The star hangs off the last letter without moving the title, which stays
+     centred on its letters alone. */
+  position: relative;
+  display: inline-block;
+}
+.brand .star {
+  position: absolute;
+  left: calc(100% - .12em);
+  top: -.08em;
+  width: .5em;
+  height: .5em;
+  fill: #ffe08a;
+  filter: drop-shadow(0 0 .18em #ffe08a99);
 }
 .tagline { margin: 6px 0 0; color: var(--muted); }
 
@@ -144,6 +157,9 @@ pre { margin: 0; padding: 12px; background: var(--panel); border-radius: var(--r
 
 .about { max-width: 560px; margin: 0 auto 32px; color: var(--muted); }
 .about li { margin: 6px 0; }
+/* Justified, with hyphenation so that the narrow column of a phone does not
+   open rivers between the words. */
+.about p, .about li, details p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
 .about .words > :first-child { margin-top: 0; }
 /* With the site's own sky: the drawing beside the words, under them on a phone. */
 .about.with-sky {

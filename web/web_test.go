@@ -125,8 +125,12 @@ func TestHomeEmpty(t *testing.T) {
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Every key has a sky") {
 		t.Fatalf("status %d, body %q", rec.Code, rec.Body.String())
 	}
-	if strings.Contains(rec.Body.String(), "<svg") {
+	// The title's star is an SVG too; a constellation is the one with a role.
+	if strings.Contains(rec.Body.String(), `role="img"`) {
 		t.Error("the empty page draws a constellation")
+	}
+	if !strings.Contains(rec.Body.String(), `class="star"`) {
+		t.Error("the title has lost its star")
 	}
 	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "default-src 'none'") || !strings.Contains(csp, "font-src 'self'") {
 		t.Errorf("CSP = %q", csp)
