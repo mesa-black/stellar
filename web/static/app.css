@@ -195,6 +195,8 @@ footer .links { margin-top: 14px; }
 footer a { color: var(--muted); text-underline-offset: .18em; }
 footer a:hover, footer a:focus-visible { color: var(--text); }
 footer .sep { margin: 0 .5em; opacity: .6; }
+footer .langs { font-size: 13px; }
+footer .langs [aria-current] { color: var(--text); }
 
 @media (max-width: 720px) {
   .result, .about.with-sky { grid-template-columns: 1fr; gap: 20px; }

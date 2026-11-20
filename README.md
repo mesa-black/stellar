@@ -107,6 +107,8 @@ stellar serve -addr :8080 # or straight from the binary
 
 **The site's own sky.** Started with its public address (`-url`), the site shows on its empty page the sky of its own key, fetched like any other and refreshed in the background, so a visitor never waits for it.
 
+**Languages.** The site speaks English, French and Spanish. It answers in the language the browser asks for (`Accept-Language`), and a visitor can choose another at the foot of the page; that choice travels in the address (`?lang=fr`), so a link keeps the language it was copied in. English governs: `web/i18n.go` holds the three catalogues, and a test refuses one whose sentences or placeholders differ from the English.
+
 **What the handshake says.** Under the sky of a site, the page gives the certificate's key type, its expiry and its issuer, the TLS version, the key exchange negotiated, and whether that exchange is a post-quantum hybrid: whether what travels to the site today could be recorded now and read by a quantum computer later.
 
 **Remembering a sky.** The page stores, in the visitor's browser only (`localStorage`), the fingerprint each host showed last. On a later visit it says whether the sky is the same or has changed. A change is not proof of an attack: many sites generate a new key at every certificate renewal, so their sky changes every few weeks. Sites that keep their key across renewals keep their sky.

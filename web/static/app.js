@@ -33,8 +33,17 @@
     }
   }
 
+  // The sentences come from the page, in its language, with {date} and
+  // {name} left for this script to fill.
+  var words = result.dataset;
+  var language = document.documentElement.lang || undefined;
+
   function day(ms) {
-    return new Date(ms).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+    return new Date(ms).toLocaleDateString(language, { year: "numeric", month: "long", day: "numeric" });
+  }
+
+  function fill(sentence, values) {
+    return (sentence || "").replace(/\{(date|name)\}/g, function (_, key) { return values[key]; });
   }
 
   function say(state, text) {
@@ -46,20 +55,18 @@
   var known = load();
   if (!known || !known.fingerprint) {
     if (save(Date.now())) {
-      say("new", "First time this browser sees this sky. It will remember it.");
+      say("new", words.new);
     }
   } else if (known.fingerprint === seen.fingerprint) {
     save(known.first);
-    say("same", "Same sky as on your earlier visits. First seen on " + day(known.first) + ".");
+    say("same", fill(words.same, { date: day(known.first) }));
   } else {
-    say("changed", "This sky has changed. On " + day(known.last) + " this site was " + known.name +
-      ". A site gets a new sky when it replaces its key, which is routine at certificate renewal, " +
-      "and also when someone else answers in its place.");
+    say("changed", fill(words.changed, { date: day(known.last), name: known.name }));
     accept.hidden = false;
     accept.addEventListener("click", function () {
       if (save(Date.now())) {
         accept.hidden = true;
-        say("new", "Remembered. " + seen.name + " is now the sky this browser expects.");
+        say("new", fill(words.accepted, { name: seen.name }));
       }
     });
   }

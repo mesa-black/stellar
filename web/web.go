@@ -101,6 +101,14 @@ func headers(next http.Handler) http.Handler {
 
 // view is what the page template renders.
 type view struct {
+	// Lang is the language of the page; LangParam is the same when the
+	// visitor chose it, so that links and forms carry the choice.
+	Lang      string
+	LangParam string
+	Langs     []langLink
+	// Base is the site's public address, empty when unknown.
+	Base string
+
 	Query string // what the visitor typed, echoed in the form
 	Error string
 
@@ -130,9 +138,49 @@ type view struct {
 	SelfSVG  template.HTML
 }
 
+// newView starts a page in the language of the request.
+func (s *Server) newView(r *http.Request, query string) view {
+	v := view{Query: query, Base: s.BaseURL}
+	var explicit bool
+	if v.Lang, explicit = pickLanguage(r); explicit {
+		v.LangParam = v.Lang
+	}
+	return v
+}
+
+// finish sets what depends on the page's final content: the switcher's
+// links, which lead to this same page in another language.
+func (v *view) finish() {
+	for _, code := range languages {
+		q := url.Values{}
+		if v.Host != "" {
+			q.Set("host", v.Host)
+		}
+		q.Set("lang", code)
+		v.Langs = append(v.Langs, langLink{Code: code, Name: languageNames[code], URL: "/?" + q.Encode(), Current: code == v.Lang})
+	}
+}
+
+// Home is the address of the empty page, in the language chosen.
+func (v view) Home() string {
+	if v.LangParam == "" {
+		return "/"
+	}
+	return "/?lang=" + v.LangParam
+}
+
+// HostURL is the address of a host's page, in the language chosen.
+func (v view) HostURL(host string) string {
+	q := url.Values{"host": {host}}
+	if v.LangParam != "" {
+		q.Set("lang", v.LangParam)
+	}
+	return "/?" + q.Encode()
+}
+
 func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("host")
-	v := view{Query: query}
+	v := s.newView(r, query)
 	status := http.StatusOK
 	if fp := strings.TrimSpace(query); strings.HasPrefix(fp, "SHA256:") {
 		// A fingerprint typed where a host name goes, as a report that prints
@@ -140,7 +188,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 		// and no host to remember.
 		key, err := stellar.ParseFingerprint(fp)
 		if err != nil {
-			v.Error, status = "That is not a fingerprint Stellar can read: "+err.Error()+".", http.StatusUnprocessableEntity
+			v.Error, status = v.S("error.print"), http.StatusUnprocessableEntity
 		} else {
 			v.Query = fp
 			v.show(key)
@@ -149,14 +197,16 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	} else if query != "" {
 		host, seen, err := s.resolve(r.Context(), query)
 		if err != nil {
-			v.Error, status = explain(err)
+			var key string
+			key, status = explain(err)
+			v.Error = v.S(key)
 		} else {
 			v.Query, v.Host = host, host
 			v.show(seen.Key)
 			v.KeyAlgorithm, v.Issuer = seen.KeyAlgorithm, seen.Issuer
 			v.Version, v.KeyExchange, v.PostQuantum = seen.Version, seen.KeyExchange, seen.PostQuantum
 			if !seen.NotAfter.IsZero() {
-				v.ValidUntil = seen.NotAfter.UTC().Format("2 January 2006")
+				v.ValidUntil = longDate(v.Lang, seen.NotAfter)
 			}
 			v.share(s.BaseURL)
 		}
@@ -164,6 +214,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	if v.Name == "" && v.Error == "" {
 		s.showSelf(&v)
 	}
+	v.finish()
 	render(w, status, v)
 }
 
@@ -218,15 +269,16 @@ func (s *Server) RefreshSelf() {
 
 func (s *Server) key(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxKeyBytes)
-	var v view
+	v := s.newView(r, "")
 	status := http.StatusOK
 	key, err := stellar.Parse([]byte(r.FormValue("key")))
 	if err != nil {
-		v.Error, status = "That is not a public key Stellar can read: "+err.Error()+".", http.StatusUnprocessableEntity
+		v.Error, status = v.S("error.key"), http.StatusUnprocessableEntity
 	} else {
 		v.show(key)
 		v.share("")
 	}
+	v.finish()
 	render(w, status, v)
 }
 
@@ -239,8 +291,9 @@ func (s *Server) sky(w http.ResponseWriter, r *http.Request) {
 	}
 	_, seen, err := s.resolve(r.Context(), name)
 	if err != nil {
-		msg, status := explain(err)
-		http.Error(w, msg, status)
+		// An image has no language to answer in: English.
+		key, status := explain(err)
+		http.Error(w, message("en", key), status)
 		return
 	}
 	key := seen.Key
@@ -269,9 +322,9 @@ func (v *view) show(key stellar.Key) {
 func (v *view) share(baseURL string) {
 	var text strings.Builder
 	if v.Host != "" {
-		text.WriteString("Stellar · " + v.Host + "\n\nThe sky of its key is " + v.Name + ".\n")
+		text.WriteString(v.S("share.host", v.Host, v.Name))
 	} else {
-		text.WriteString("Stellar · " + v.Name + "\n\n")
+		text.WriteString(v.S("share.key", v.Name))
 	}
 	text.WriteString(v.Fingerprint)
 	if v.Host != "" && baseURL != "" {
@@ -283,6 +336,8 @@ func (v *view) share(baseURL string) {
 
 func render(w http.ResponseWriter, status int, v view) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Language", v.Lang)
+	w.Header().Set("Vary", "Accept-Language")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(status)
 	page.Execute(w, v)
@@ -331,8 +386,8 @@ func (s *Server) resolve(ctx context.Context, input string) (string, stellar.Hos
 	return host, seen, nil
 }
 
-// explain turns a lookup error into a sentence for the visitor and an HTTP
-// status. Unknown errors are not echoed: they may describe the server's
+// explain turns a lookup error into the key of a sentence for the visitor and
+// an HTTP status. Unknown errors are not echoed: they may describe the server's
 // network.
 func explain(err error) (string, int) {
 	var (
@@ -341,19 +396,19 @@ func explain(err error) (string, int) {
 	)
 	switch {
 	case errors.Is(err, errBadHost):
-		return "Enter a public host name, such as example.com.", http.StatusBadRequest
+		return "error.host", http.StatusBadRequest
 	case errors.Is(err, errNotPublic):
-		return "That name does not lead to a public address.", http.StatusBadRequest
+		return "error.private", http.StatusBadRequest
 	case errors.Is(err, errBusy):
-		return "Stellar is busy. Try again in a moment.", http.StatusServiceUnavailable
+		return "error.busy", http.StatusServiceUnavailable
 	case errors.As(err, &dnsErr) && dnsErr.IsNotFound:
-		return "No such host.", http.StatusNotFound
+		return "error.unknown", http.StatusNotFound
 	case errors.As(err, &certErr):
-		return "The host answered, but its certificate could not be verified: it is expired, self-signed, or issued for another name. Stellar only draws keys it can verify.", http.StatusBadGateway
+		return "error.cert", http.StatusBadGateway
 	case errors.Is(err, context.DeadlineExceeded), isTimeout(err):
-		return "The host took too long to answer on port 443.", http.StatusGatewayTimeout
+		return "error.timeout", http.StatusGatewayTimeout
 	default:
-		return "Could not reach that host over TLS on port 443.", http.StatusBadGateway
+		return "error.reach", http.StatusBadGateway
 	}
 }
 

@@ -12,6 +12,8 @@ import (
 	"net/http/httptest"
 	"net/netip"
 	"net/url"
+	"regexp"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -302,6 +304,73 @@ func TestHostFacts(t *testing.T) {
 	}
 }
 
+// The three catalogues say the same things: same keys, same placeholders.
+func TestLanguagesAgree(t *testing.T) {
+	holes := regexp.MustCompile(`%[sd]|\{[a-z]+\}|</?[a-z]+>`)
+	for _, lang := range languages[1:] {
+		for key, en := range messages["en"] {
+			other, ok := messages[lang][key]
+			if !ok {
+				t.Errorf("%s lacks %q", lang, key)
+				continue
+			}
+			want, got := holes.FindAllString(en, -1), holes.FindAllString(other, -1)
+			sort.Strings(want)
+			sort.Strings(got)
+			if strings.Join(want, " ") != strings.Join(got, " ") {
+				t.Errorf("%s %q: placeholders %v, English has %v", lang, key, got, want)
+			}
+		}
+		for key := range messages[lang] {
+			if _, ok := messages["en"][key]; !ok {
+				t.Errorf("%s has %q, which English lacks", lang, key)
+			}
+		}
+	}
+}
+
+// The language is the visitor's explicit choice, else the browser's, else
+// English; an explicit choice is carried by the links and the forms.
+func TestLanguage(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+	page := func(target, accept string) string {
+		req := httptest.NewRequest("GET", target, nil)
+		if accept != "" {
+			req.Header.Set("Accept-Language", accept)
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec.Header().Get("Content-Language") + "|" + rec.Body.String()
+	}
+
+	if body := page("/", ""); !strings.HasPrefix(body, "en|") || !strings.Contains(body, "Every key has a sky.") {
+		t.Error("no preference is not English")
+	}
+	if body := page("/", "fr-FR,fr;q=0.9,en;q=0.8"); !strings.HasPrefix(body, "fr|") || !strings.Contains(body, "À chaque clé son ciel.") || strings.Contains(body, `name="lang"`) {
+		t.Error("a French browser is not answered in French, or the choice is forced on it")
+	}
+	if body := page("/", "de,es;q=0.5"); !strings.HasPrefix(body, "es|") {
+		t.Error("the first language we speak is not the one chosen")
+	}
+	body := page("/?lang=es&host=example.com", "fr")
+	for _, want := range []string{
+		`<html lang="es">`, "Compartir este cielo", "18 de febrero de 2027", "certificado X.509",
+		`<input type="hidden" name="lang" value="es">`, `href="/?host=example.com&amp;lang=fr"`,
+		"El+cielo+de+su+clave", `data-same="El mismo cielo`,
+	} {
+		if !strings.Contains(strings.ReplaceAll(body, "%20", "+"), want) {
+			t.Errorf("the Spanish page lacks %q", want)
+		}
+	}
+	if body := page("/?lang=xx", ""); !strings.HasPrefix(body, "en|") {
+		t.Error("an unknown language is not ignored")
+	}
+	if body := page("/?lang=fr&host=127.0.0.1", ""); !strings.Contains(body, "Saisissez un nom de site public") {
+		t.Error("an error is not said in the page's language")
+	}
+}
+
 func TestHomeErrors(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()
@@ -333,9 +402,13 @@ func TestExplain(t *testing.T) {
 		503: errBusy,
 		504: context.DeadlineExceeded,
 	} {
-		msg, got := explain(err)
+		key, got := explain(err)
+		msg := message("en", key)
 		if got != want {
 			t.Errorf("explain(%v) = %d, want %d", err, got, want)
+		}
+		if msg == key {
+			t.Errorf("explain(%v) names a sentence nobody wrote: %q", err, key)
 		}
 		if want == 502 && !strings.Contains(msg, "certificate") {
 			t.Errorf("explain(%v) = %q, want a word about the certificate", err, msg)

@@ -1,62 +1,63 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{.Lang}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{if .Name}}{{.Name}} · {{end}}Stellar</title>
-<meta name="description" content="Every website key has a sky. Stellar draws a site's public key as a constellation you can recognise at a glance.">
+<meta name="description" content="{{.S "meta.description"}}">
 <link rel="stylesheet" href="/static/app.css">
 <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
 <script src="/static/app.js" defer></script>
 </head>
 <body>
 <header>
-  <a class="brand" href="/">Stellar<svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0C12.8 8 16 11.2 24 12 16 12.8 12.8 16 12 24 11.2 16 8 12.8 0 12 8 11.2 11.2 8 12 0Z"/></svg></a>
-  <p class="tagline">Every key has a sky.</p>
+  <a class="brand" href="{{.Home}}">Stellar<svg class="star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0C12.8 8 16 11.2 24 12 16 12.8 12.8 16 12 24 11.2 16 8 12.8 0 12 8 11.2 11.2 8 12 0Z"/></svg></a>
+  <p class="tagline">{{.T "tagline"}}</p>
 </header>
 
 <main>
   <form class="search" action="/" method="get">
-    <label for="host">Website, or a <code>SHA256:</code> fingerprint</label>
+    <label for="host">{{.T "form.label"}}</label>
     <div class="row">
       <input id="host" name="host" type="text" value="{{.Query}}" placeholder="example.com"
              autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" required{{if not .Name}} autofocus{{end}}>
-      <button type="submit">Show its sky</button>
+      {{if .LangParam}}<input type="hidden" name="lang" value="{{.LangParam}}">{{end}}
+      <button type="submit">{{.T "form.submit"}}</button>
     </div>
   </form>
 
   {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
 
   {{if .Name}}
-  <article class="result" id="result" data-host="{{.Host}}" data-name="{{.Name}}" data-fingerprint="{{.Fingerprint}}">
+  <article class="result" id="result" data-host="{{.Host}}" data-name="{{.Name}}" data-fingerprint="{{.Fingerprint}}"
+           data-new="{{.S "seen.new"}}" data-same="{{.S "seen.same"}}" data-changed="{{.S "seen.changed"}}" data-accepted="{{.S "seen.accepted"}}">
     <div class="sky">{{.SVG}}</div>
     <div class="facts">
       <h1>{{.Name}}</h1>
       <p class="status" id="status" hidden></p>
-      <button type="button" class="quiet" id="accept" hidden>Remember the new sky</button>
+      <button type="button" class="quiet" id="accept" hidden>{{.T "result.remember"}}</button>
       <dl>
-        {{if .Label}}<dt>Key of</dt><dd>{{.Label}}</dd>{{end}}
-        <dt>Kind</dt><dd>{{.Kind}}</dd>
-        <dt>Fingerprint</dt><dd class="mono">{{.Fingerprint}}</dd>
-        {{if .KeyAlgorithm}}<dt>Certificate</dt><dd>{{.KeyAlgorithm}}{{if .ValidUntil}}, valid until {{.ValidUntil}}{{end}}{{if .Issuer}}, issued by {{.Issuer}}{{end}}</dd>{{end}}
-        {{if .Version}}<dt>Connection</dt><dd>{{.Version}}{{if .KeyExchange}}, key exchange {{.KeyExchange}}{{end}}</dd>{{end}}
+        {{if .Label}}<dt>{{.T "fact.keyof"}}</dt><dd>{{.Label}}</dd>{{end}}
+        <dt>{{.T "fact.kind"}}</dt><dd>{{.KindLabel}}</dd>
+        <dt>{{.T "fact.fingerprint"}}</dt><dd class="mono">{{.Fingerprint}}</dd>
+        {{if .KeyAlgorithm}}<dt>{{.T "fact.certificate"}}</dt><dd>{{.KeyAlgorithm}}{{if .ValidUntil}}{{.T "cert.until" .ValidUntil}}{{end}}{{if .Issuer}}{{.T "cert.issuer" .Issuer}}{{end}}</dd>{{end}}
+        {{if .Version}}<dt>{{.T "fact.connection"}}</dt><dd>{{.Version}}{{if .KeyExchange}}{{.T "conn.exchange" .KeyExchange}}{{end}}</dd>{{end}}
       </dl>
       {{if .Version}}
       <p class="quantum" data-pq="{{if .PostQuantum}}yes{{else}}no{{end}}">
-        {{if .PostQuantum}}<strong>Post-quantum key exchange: yes.</strong> What travels to this site today stays secret even if it is recorded now and a quantum computer is pointed at it later.
-        {{else}}<strong>Post-quantum key exchange: no.</strong> What travels to this site today can be recorded now and read later by a quantum computer.
-        {{end}}The key drawn here is another matter: it is a classical one, as in every certificate issued today, and it only says who answers now.
+        {{if .PostQuantum}}{{.T "pq.yes"}}{{else}}{{.T "pq.no"}}{{end}}
+        {{.T "pq.key"}}
       </p>
       {{end}}
       <p class="share">
-        <span class="over">Share this sky</span>
-        <a class="button" href="{{.ShareURL}}" rel="noopener noreferrer" target="_blank">Send on Threema</a>
+        <span class="over">{{.T "share.label"}}</span>
+        <a class="button" href="{{.ShareURL}}" rel="noopener noreferrer" target="_blank">{{.T "share.button"}}</a>
       </p>
       {{if .Host}}
       <details>
-        <summary>Embed this sky</summary>
-        <p>The image follows the key: if the site changes its key, the sky changes.</p>
-        <pre class="mono">&lt;img src="/sky/{{.Host}}.svg" alt="{{.Name}}" width="320" height="320"&gt;</pre>
+        <summary>{{.T "embed.summary"}}</summary>
+        <p>{{.T "embed.text"}}</p>
+        <pre class="mono">&lt;img src="{{.Base}}/sky/{{.Host}}.svg" alt="{{.Name}}" width="320" height="320"&gt;</pre>
       </details>
       {{end}}
     </div>
@@ -65,37 +66,41 @@
   <section class="about{{if .SelfName}} with-sky{{end}}">
     {{if .SelfName}}
     <figure class="self">
-      <a href="/?host={{.SelfHost}}" aria-label="The sky of {{.SelfHost}}">{{.SelfSVG}}</a>
-      <figcaption>The sky of this very site: <strong>{{.SelfName}}</strong>, the key {{.SelfHost}} answers with.</figcaption>
+      <a href="{{.HostURL .SelfHost}}" aria-label="{{.S "self.label" .SelfHost}}">{{.SelfSVG}}</a>
+      <figcaption>{{.T "self.caption" .SelfName .SelfHost}}</figcaption>
     </figure>
     {{end}}
     <div class="words">
-    <p>A website proves who it is with a public key. Its fingerprint is 43 characters nobody reads. Stellar draws those characters as a constellation with a name, so a change is something you can see.</p>
-    <p>The names are invented, and so are the drawings: none is a real constellation. The sky has only 88 of those, far too few for every key to have its own, and a name anybody could pick would prove nothing. So each name is built from the key itself, with a Latin sound, to be said aloud: "on my side your site is {{if .SelfName}}{{.SelfName}}{{else}}Merebis Vovinus{{end}}; and on yours?"</p>
+    <p>{{.T "about.what"}}</p>
+    <p>{{if .SelfName}}{{.T "about.names" .SelfName}}{{else}}{{.T "about.names" "Merebis Vovinus"}}{{end}}</p>
     <ol>
-      <li>Stellar asks the site for its certificate and hashes the public key inside.</li>
-      <li>The hash decides every star: where it sits, how bright it is, what it joins.</li>
-      <li>Your browser remembers the sky. Come back later and it tells you whether it is still the same.</li>
+      <li>{{.T "about.step1"}}</li>
+      <li>{{.T "about.step2"}}</li>
+      <li>{{.T "about.step3"}}</li>
     </ol>
-    <p>A site name shows the sky of the key that site answers with. A document signed with other keys has another sky: to see that one, paste the <code>SHA256:</code> line the document prints.</p>
+    <p>{{.T "about.which"}}</p>
     </div>
   </section>
   {{end}}
 
   <details class="paste"{{if and .Name (not .Host)}} open{{end}}>
-    <summary>Or paste a public key</summary>
+    <summary>{{.T "paste.summary"}}</summary>
     <form action="/key" method="post">
-      <label for="key">OpenSSH public key, PEM public key, PEM certificate, or SHA256 fingerprint</label>
+      <label for="key">{{.T "paste.label"}}</label>
       <textarea id="key" name="key" rows="4" spellcheck="false" required placeholder="ssh-ed25519 AAAA…"></textarea>
-      <button type="submit">Show its sky</button>
+      {{if .LangParam}}<input type="hidden" name="lang" value="{{.LangParam}}">{{end}}
+      <button type="submit">{{.T "form.submit"}}</button>
     </form>
   </details>
 </main>
 
 <footer>
-  <p>Stellar is a visual fingerprint, not a cipher. A sky is a quick way to notice a change; when it matters, compare the full fingerprint.</p>
+  <p>{{.T "footer.text"}}</p>
   <p class="links">
     <a href="https://github.com/mesa-black/sablier" rel="noopener noreferrer" target="_blank">Sablier</a><span class="sep" aria-hidden="true">·</span><a href="https://mesa.black" rel="noopener noreferrer" target="_blank">BlackMesa Labs</a>
+  </p>
+  <p class="links langs">
+    {{range $i, $l := .Langs}}{{if $i}}<span class="sep" aria-hidden="true">·</span>{{end}}{{if $l.Current}}<span aria-current="true">{{$l.Name}}</span>{{else}}<a href="{{$l.URL}}" hreflang="{{$l.Code}}" lang="{{$l.Code}}">{{$l.Name}}</a>{{end}}{{end}}
   </p>
 </footer>
 </body>
