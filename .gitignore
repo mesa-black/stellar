@@ -1,0 +1,4 @@
+/bin/
+*.svg
+!/docs/*.svg
+.DS_Store

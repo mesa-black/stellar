@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="640" height="640" role="img">
+<title>Subeve Zidu</title>
+<desc>Stellar v1 constellation of SHA256:kqckL3tw6x8R1HqM3pohRjFi/6wO3yM2MXYGcV0/2qc</desc>
+<defs>
+<radialGradient id="sky" cx="50%" cy="42%" r="75%"><stop offset="0" stop-color="#16204a"/><stop offset="1" stop-color="#05060f"/></radialGradient>
+<radialGradient id="glow0"><stop offset="0" stop-color="#8fb4ff" stop-opacity=".55"/><stop offset="1" stop-color="#8fb4ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="glow1"><stop offset="0" stop-color="#f4f6ff" stop-opacity=".55"/><stop offset="1" stop-color="#f4f6ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="glow2"><stop offset="0" stop-color="#ffe08a" stop-opacity=".55"/><stop offset="1" stop-color="#ffe08a" stop-opacity="0"/></radialGradient>
+<radialGradient id="glow3"><stop offset="0" stop-color="#ffb070" stop-opacity=".55"/><stop offset="1" stop-color="#ffb070" stop-opacity="0"/></radialGradient>
+<radialGradient id="glow4"><stop offset="0" stop-color="#ff7b6b" stop-opacity=".55"/><stop offset="1" stop-color="#ff7b6b" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="1000" height="1000" rx="36" fill="url(#sky)"/>
+<g fill="#cfd8ff">
+<circle cx="134.8" cy="634.8" r="1.8" opacity="0.59"/>
+<circle cx="228.5" cy="95.7" r="1.8" opacity="0.59"/>
+<circle cx="544.9" cy="880.9" r="0.9" opacity="0.25"/>
+<circle cx="959.0" cy="341.8" r="0.9" opacity="0.25"/>
+<circle cx="451.2" cy="861.3" r="1.8" opacity="0.59"/>
+<circle cx="798.8" cy="705.1" r="1.8" opacity="0.59"/>
+<circle cx="302.7" cy="478.5" r="1.4" opacity="0.42"/>
+<circle cx="330.1" cy="377.0" r="1.4" opacity="0.42"/>
+<circle cx="841.8" cy="650.4" r="0.9" opacity="0.25"/>
+<circle cx="267.6" cy="763.7" r="1.8" opacity="0.59"/>
+<circle cx="900.4" cy="830.1" r="0.9" opacity="0.25"/>
+<circle cx="853.5" cy="634.8" r="1.4" opacity="0.42"/>
+<circle cx="127.0" cy="412.1" r="0.9" opacity="0.25"/>
+<circle cx="209.0" cy="103.5" r="0.9" opacity="0.25"/>
+<circle cx="502.0" cy="334.0" r="1.8" opacity="0.59"/>
+<circle cx="634.8" cy="158.2" r="1.8" opacity="0.59"/>
+<circle cx="865.2" cy="111.3" r="1.4" opacity="0.42"/>
+<circle cx="388.7" cy="681.6" r="1.4" opacity="0.42"/>
+<circle cx="818.4" cy="861.3" r="1.8" opacity="0.59"/>
+<circle cx="291.0" cy="228.5" r="1.4" opacity="0.42"/>
+<circle cx="943.4" cy="669.9" r="1.4" opacity="0.42"/>
+<circle cx="826.2" cy="119.1" r="1.4" opacity="0.42"/>
+<circle cx="576.2" cy="2.0" r="1.4" opacity="0.42"/>
+<circle cx="650.4" cy="87.9" r="1.8" opacity="0.59"/>
+<circle cx="513.7" cy="939.5" r="1.4" opacity="0.42"/>
+<circle cx="701.2" cy="228.5" r="1.4" opacity="0.42"/>
+<circle cx="232.4" cy="724.6" r="0.9" opacity="0.25"/>
+<circle cx="763.7" cy="986.3" r="0.9" opacity="0.25"/>
+<circle cx="306.6" cy="404.3" r="1.8" opacity="0.59"/>
+<circle cx="638.7" cy="990.2" r="0.9" opacity="0.25"/>
+<circle cx="771.5" cy="361.3" r="0.9" opacity="0.25"/>
+<circle cx="95.7" cy="939.5" r="1.8" opacity="0.59"/>
+<circle cx="291.0" cy="783.2" r="1.4" opacity="0.42"/>
+<circle cx="287.1" cy="482.4" r="1.4" opacity="0.42"/>
+<circle cx="669.9" cy="478.5" r="0.9" opacity="0.25"/>
+<circle cx="127.0" cy="767.6" r="1.4" opacity="0.42"/>
+<circle cx="560.5" cy="877.0" r="1.4" opacity="0.42"/>
+<circle cx="572.3" cy="361.3" r="1.8" opacity="0.59"/>
+<circle cx="56.6" cy="572.3" r="0.9" opacity="0.25"/>
+<circle cx="248.0" cy="33.2" r="0.9" opacity="0.25"/>
+<circle cx="392.6" cy="697.3" r="0.9" opacity="0.25"/>
+<circle cx="572.3" cy="923.8" r="0.9" opacity="0.25"/>
+<circle cx="759.8" cy="95.7" r="1.8" opacity="0.59"/>
+<circle cx="880.9" cy="630.9" r="1.4" opacity="0.42"/>
+<circle cx="220.7" cy="712.9" r="1.4" opacity="0.42"/>
+<circle cx="877.0" cy="919.9" r="1.4" opacity="0.42"/>
+<circle cx="267.6" cy="478.5" r="1.4" opacity="0.42"/>
+<circle cx="896.5" cy="791.0" r="1.4" opacity="0.42"/>
+</g>
+<g stroke="#dfe6ff" stroke-opacity=".5" stroke-width="2.2" stroke-linecap="round">
+<line x1="615.8" y1="393.0" x2="372.0" y2="137.0"/>
+<line x1="372.0" y1="137.0" x2="749.8" y2="295.5"/>
+<line x1="615.8" y1="393.0" x2="396.4" y2="405.2"/>
+<line x1="615.8" y1="393.0" x2="298.9" y2="795.2"/>
+<line x1="396.4" y1="405.2" x2="250.2" y2="198.0"/>
+<line x1="749.8" y1="295.5" x2="859.5" y2="795.2"/>
+<line x1="859.5" y1="795.2" x2="810.8" y2="612.3"/>
+<line x1="396.4" y1="405.2" x2="335.5" y2="283.3"/>
+<line x1="615.8" y1="393.0" x2="493.9" y2="551.4"/>
+<line x1="615.8" y1="393.0" x2="810.8" y2="612.3"/>
+<line x1="859.5" y1="795.2" x2="493.9" y2="551.4"/>
+</g>
+<circle cx="615.8" cy="393.0" r="32.0" fill="url(#glow1)"/>
+<circle cx="615.8" cy="393.0" r="8.0" fill="#f4f6ff"/>
+<circle cx="615.8" cy="393.0" r="3.6" fill="#fff"/>
+<circle cx="372.0" cy="137.0" r="32.0" fill="url(#glow1)"/>
+<circle cx="372.0" cy="137.0" r="8.0" fill="#f4f6ff"/>
+<circle cx="372.0" cy="137.0" r="3.6" fill="#fff"/>
+<circle cx="749.8" cy="295.5" r="44.0" fill="url(#glow0)"/>
+<path d="M714.6 295.5H785.0M749.8 260.3V330.7" stroke="#8fb4ff" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="749.8" cy="295.5" r="11.0" fill="#8fb4ff"/>
+<circle cx="749.8" cy="295.5" r="5.0" fill="#fff"/>
+<circle cx="396.4" cy="405.2" r="22.0" fill="url(#glow1)"/>
+<circle cx="396.4" cy="405.2" r="5.5" fill="#f4f6ff"/>
+<circle cx="396.4" cy="405.2" r="2.5" fill="#fff"/>
+<circle cx="298.9" cy="795.2" r="32.0" fill="url(#glow1)"/>
+<circle cx="298.9" cy="795.2" r="8.0" fill="#f4f6ff"/>
+<circle cx="298.9" cy="795.2" r="3.6" fill="#fff"/>
+<circle cx="250.2" cy="198.0" r="44.0" fill="url(#glow4)"/>
+<path d="M215.0 198.0H285.4M250.2 162.8V233.2" stroke="#ff7b6b" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="250.2" cy="198.0" r="11.0" fill="#ff7b6b"/>
+<circle cx="250.2" cy="198.0" r="5.0" fill="#fff"/>
+<circle cx="859.5" cy="795.2" r="22.0" fill="url(#glow1)"/>
+<circle cx="859.5" cy="795.2" r="5.5" fill="#f4f6ff"/>
+<circle cx="859.5" cy="795.2" r="2.5" fill="#fff"/>
+<circle cx="810.8" cy="612.3" r="44.0" fill="url(#glow4)"/>
+<path d="M775.6 612.3H846.0M810.8 577.1V647.5" stroke="#ff7b6b" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="810.8" cy="612.3" r="11.0" fill="#ff7b6b"/>
+<circle cx="810.8" cy="612.3" r="5.0" fill="#fff"/>
+<circle cx="335.5" cy="283.3" r="44.0" fill="url(#glow3)"/>
+<path d="M300.3 283.3H370.7M335.5 248.1V318.5" stroke="#ffb070" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/>
+<circle cx="335.5" cy="283.3" r="11.0" fill="#ffb070"/>
+<circle cx="335.5" cy="283.3" r="5.0" fill="#fff"/>
+<circle cx="493.9" cy="551.4" r="32.0" fill="url(#glow4)"/>
+<circle cx="493.9" cy="551.4" r="8.0" fill="#ff7b6b"/>
+<circle cx="493.9" cy="551.4" r="3.6" fill="#fff"/>
+<text x="500" y="935" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="34" letter-spacing="10" fill="#e8ecff">SUBEVE ZIDU</text>
+<text x="500" y="972" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" fill="#e8ecff" fill-opacity=".6">SHA256:kqckL3tw6x8R1HqM3pohRjFi/6wO3yM2MXYGcV0/2qc</text>
+</svg>
