@@ -10,7 +10,7 @@ Status: prototype. The mapping is versioned (`v1`) but may still change.
 
 ## Build
 
-Stellar needs Go 1.24 or later and has no dependency outside the standard library.
+Stellar needs Go 1.24 or later and has no dependency outside the standard library. Without Go, `make image` builds everything with podman (see [Container](#container)).
 
 ```sh
 go build -o bin/stellar ./cmd/stellar
@@ -61,6 +61,47 @@ Key:         test@stellar (ssh-ed25519)
 | `-insecure` | With `-host`, skip certificate verification. |
 
 Colours are disabled when the output is not a terminal or when `NO_COLOR` is set.
+
+## Website
+
+`stellar serve` runs a small website: type a host name, see the sky of the key its certificate carries.
+
+```sh
+make serve                # builds the image with podman, then http://localhost:8099
+stellar serve -addr :8080 # or straight from the binary
+```
+
+| Route | Purpose |
+| --- | --- |
+| `/` and `/?host=example.com` | The page. A whole URL may be pasted; only its host name is kept. |
+| `/sky/example.com.svg` | The constellation as an image, to embed elsewhere. `?size=` sets its side, from 64 to 2048 pixels. |
+| `POST /key` | The constellation of a pasted public key, certificate or fingerprint. |
+| `/healthz` | Liveness probe. |
+
+**Remembering a sky.** The page stores, in the visitor's browser only (`localStorage`), the fingerprint each host showed last. On a later visit it says whether the sky is the same or has changed. A change is not proof of an attack: many sites generate a new key at every certificate renewal, so their sky changes every few weeks. Sites that keep their key across renewals keep their sky.
+
+**What the server agrees to connect to.** The site connects to hosts named by strangers, so it is restricted:
+
+- Only DNS names are accepted: no IP address, no port, no single-label name. The port is always 443.
+- The address actually dialled is checked after name resolution and must be public. Loopback, private, link-local, carrier-grade NAT, NAT64 and 6to4 ranges are refused, whatever the DNS answers.
+- The certificate chain is verified. A key that cannot be verified is not drawn.
+- At most 16 lookups run at once, each within 8 seconds. Results are cached for 5 minutes.
+- Errors shown to visitors never echo the underlying network error.
+
+There is no per-visitor rate limit: put the site behind a reverse proxy that has one before exposing it to the internet.
+
+The pages load nothing from other origins and carry no inline script or style, under a `default-src 'none'` content security policy.
+
+### Container
+
+```sh
+make test    # format check, vet and tests, inside the build stage
+make image   # the image: a static binary and the root certificates, about 9 MB
+make serve   # run it, read-only, without capabilities, on 127.0.0.1:8099 (PORT=… to change)
+make sky HOST=example.com
+```
+
+The image is built `FROM scratch` and runs as an unprivileged user. Go is only needed inside the build stage, so a workstation with podman needs nothing else.
 
 ## What is hashed
 

@@ -1,0 +1,246 @@
+// Package web serves Stellar as a small website: type a host name, see the
+// constellation of the key its certificate carries.
+package web
+
+import (
+	"context"
+	"crypto/tls"
+	"embed"
+	"errors"
+	"html/template"
+	"io"
+	"io/fs"
+	"net"
+	"net/http"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/mesa-black/stellar"
+)
+
+//go:embed templates/page.html
+var pageHTML string
+
+//go:embed static
+var staticFS embed.FS
+
+var page = template.Must(template.New("page").Parse(pageHTML))
+
+const (
+	cacheTTL     = 5 * time.Minute
+	cacheMax     = 2048
+	maxLookups   = 16
+	lookupBudget = 8 * time.Second
+	maxKeyBytes  = 64 << 10
+)
+
+// Lookup returns the key a host presents.
+type Lookup func(ctx context.Context, host string) (stellar.Key, error)
+
+// Server is the website. The zero value is not usable; call New.
+type Server struct {
+	lookup Lookup
+	now    func() time.Time
+	slots  chan struct{}
+
+	mu    sync.Mutex
+	cache map[string]cached
+}
+
+type cached struct {
+	key stellar.Key
+	at  time.Time
+}
+
+// New returns a server that resolves hosts with lookup. Pass PublicLookup
+// unless you know every caller is trusted.
+func New(lookup Lookup) *Server {
+	return &Server{
+		lookup: lookup,
+		now:    time.Now,
+		slots:  make(chan struct{}, maxLookups),
+		cache:  map[string]cached{},
+	}
+}
+
+// Handler returns the routes of the site.
+func (s *Server) Handler() http.Handler {
+	static, _ := fs.Sub(staticFS, "static")
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /{$}", s.home)
+	mux.HandleFunc("POST /key", s.key)
+	mux.HandleFunc("GET /sky/{file}", s.sky)
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "ok\n") })
+	return headers(mux)
+}
+
+// headers sets the security headers. The pages load nothing from elsewhere
+// and carry no inline script or style, so the policy can be strict.
+func headers(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "no-referrer")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// view is what the page template renders.
+type view struct {
+	Query string // what the visitor typed, echoed in the form
+	Error string
+
+	// Set when there is a constellation to show.
+	Host        string // empty for a pasted key
+	Name        string
+	Fingerprint string
+	Kind        string
+	Label       string
+	SVG         template.HTML
+}
+
+func (s *Server) home(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("host")
+	v := view{Query: query}
+	status := http.StatusOK
+	if query != "" {
+		host, key, err := s.resolve(r.Context(), query)
+		if err != nil {
+			v.Error, status = explain(err)
+		} else {
+			v.Query, v.Host = host, host
+			v.show(key)
+		}
+	}
+	render(w, status, v)
+}
+
+func (s *Server) key(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxKeyBytes)
+	var v view
+	status := http.StatusOK
+	key, err := stellar.Parse([]byte(r.FormValue("key")))
+	if err != nil {
+		v.Error, status = "That is not a public key Stellar can read: "+err.Error()+".", http.StatusUnprocessableEntity
+	} else {
+		v.show(key)
+	}
+	render(w, status, v)
+}
+
+// sky serves the constellation of a host as an image: /sky/example.com.svg.
+func (s *Server) sky(w http.ResponseWriter, r *http.Request) {
+	name, ok := strings.CutSuffix(r.PathValue("file"), ".svg")
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	_, key, err := s.resolve(r.Context(), name)
+	if err != nil {
+		msg, status := explain(err)
+		http.Error(w, msg, status)
+		return
+	}
+	size := 640
+	if n, err := strconv.Atoi(r.URL.Query().Get("size")); err == nil {
+		size = min(max(n, 64), 2048)
+	}
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	io.WriteString(w, stellar.New(key.Digest).SVG(size, key.Fingerprint()))
+}
+
+func (v *view) show(key stellar.Key) {
+	c := stellar.New(key.Digest)
+	v.Name = c.Name
+	v.Fingerprint = key.Fingerprint()
+	v.Kind = key.Kind
+	v.Label = key.Label
+	// SVG escapes the only free text it embeds, the caption.
+	v.SVG = template.HTML(c.SVG(640, key.Fingerprint()))
+}
+
+func render(w http.ResponseWriter, status int, v view) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(status)
+	page.Execute(w, v)
+}
+
+var errBusy = errors.New("too many lookups in progress")
+
+// resolve validates what the visitor typed and returns the host's key, from
+// the cache when it is fresh.
+func (s *Server) resolve(ctx context.Context, input string) (string, stellar.Key, error) {
+	host, err := cleanHost(input)
+	if err != nil {
+		return "", stellar.Key{}, err
+	}
+
+	s.mu.Lock()
+	hit, ok := s.cache[host]
+	s.mu.Unlock()
+	if ok && s.now().Sub(hit.at) < cacheTTL {
+		return host, hit.key, nil
+	}
+
+	// A bounded number of outbound connections, so a burst of requests
+	// cannot turn the server into a scanner.
+	select {
+	case s.slots <- struct{}{}:
+		defer func() { <-s.slots }()
+	default:
+		return "", stellar.Key{}, errBusy
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, lookupBudget)
+	defer cancel()
+	key, err := s.lookup(ctx, host)
+	if err != nil {
+		return "", stellar.Key{}, err
+	}
+	key.Label = host
+
+	s.mu.Lock()
+	if len(s.cache) >= cacheMax {
+		clear(s.cache)
+	}
+	s.cache[host] = cached{key, s.now()}
+	s.mu.Unlock()
+	return host, key, nil
+}
+
+// explain turns a lookup error into a sentence for the visitor and an HTTP
+// status. Unknown errors are not echoed: they may describe the server's
+// network.
+func explain(err error) (string, int) {
+	var (
+		dnsErr  *net.DNSError
+		certErr *tls.CertificateVerificationError
+	)
+	switch {
+	case errors.Is(err, errBadHost):
+		return "Enter a public host name, such as example.com.", http.StatusBadRequest
+	case errors.Is(err, errNotPublic):
+		return "That name does not lead to a public address.", http.StatusBadRequest
+	case errors.Is(err, errBusy):
+		return "Stellar is busy. Try again in a moment.", http.StatusServiceUnavailable
+	case errors.As(err, &dnsErr) && dnsErr.IsNotFound:
+		return "No such host.", http.StatusNotFound
+	case errors.As(err, &certErr):
+		return "The host answered, but its certificate could not be verified: it is expired, self-signed, or issued for another name. Stellar only draws keys it can verify.", http.StatusBadGateway
+	case errors.Is(err, context.DeadlineExceeded), isTimeout(err):
+		return "The host took too long to answer on port 443.", http.StatusGatewayTimeout
+	default:
+		return "Could not reach that host over TLS on port 443.", http.StatusBadGateway
+	}
+}
+
+func isTimeout(err error) bool {
+	var netErr net.Error
+	return errors.As(err, &netErr) && netErr.Timeout()
+}

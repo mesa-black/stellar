@@ -17,6 +17,7 @@ const usage = `Usage:
   stellar [flags] -                the same, read from standard input
   stellar [flags] SHA256:<base64>  a fingerprint, as printed by ssh-keygen -l
   stellar [flags] -host <name>     the certificate a TLS server presents
+  stellar serve [-addr host:port]  the website
 
 Flags:
 `
@@ -29,6 +30,9 @@ func main() {
 }
 
 func run() error {
+	if len(os.Args) > 1 && os.Args[1] == "serve" {
+		return serve(os.Args[2:])
+	}
 	host := flag.String("host", "", "fetch the key from a TLS server, `name[:port]`")
 	insecure := flag.Bool("insecure", false, "with -host, do not verify the certificate chain")
 	out := flag.String("o", "", "write an SVG to `file` (- for standard output)")

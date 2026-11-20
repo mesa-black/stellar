@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{if .Name}}{{.Name}} · {{end}}Stellar</title>
+<meta name="description" content="Every website key has a sky. Stellar draws a site's public key as a constellation you can recognise at a glance.">
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header>
+  <a class="brand" href="/">Stellar</a>
+  <p class="tagline">Every key has a sky.</p>
+</header>
+
+<main>
+  <form class="search" action="/" method="get">
+    <label for="host">Website</label>
+    <div class="row">
+      <input id="host" name="host" type="text" value="{{.Query}}" placeholder="example.com"
+             autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" required{{if not .Name}} autofocus{{end}}>
+      <button type="submit">Show its sky</button>
+    </div>
+  </form>
+
+  {{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+
+  {{if .Name}}
+  <article class="result" id="result" data-host="{{.Host}}" data-name="{{.Name}}" data-fingerprint="{{.Fingerprint}}">
+    <div class="sky">{{.SVG}}</div>
+    <div class="facts">
+      <h1>{{.Name}}</h1>
+      <p class="status" id="status" hidden></p>
+      <button type="button" class="quiet" id="accept" hidden>Remember the new sky</button>
+      <dl>
+        {{if .Label}}<dt>Key of</dt><dd>{{.Label}}</dd>{{end}}
+        <dt>Kind</dt><dd>{{.Kind}}</dd>
+        <dt>Fingerprint</dt><dd class="mono">{{.Fingerprint}}</dd>
+      </dl>
+      {{if .Host}}
+      <details>
+        <summary>Embed this sky</summary>
+        <p>The image follows the key: if the site changes its key, the sky changes.</p>
+        <pre class="mono">&lt;img src="/sky/{{.Host}}.svg" alt="{{.Name}}" width="320" height="320"&gt;</pre>
+      </details>
+      {{end}}
+    </div>
+  </article>
+  {{else}}
+  <section class="about">
+    <p>A website proves who it is with a public key. Its fingerprint is 43 characters nobody reads. Stellar draws those characters as a constellation with a name, so a change is something you can see.</p>
+    <ol>
+      <li>Stellar asks the site for its certificate and hashes the public key inside.</li>
+      <li>The hash decides every star: where it sits, how bright it is, what it joins.</li>
+      <li>Your browser remembers the sky. Come back later and it tells you whether it is still the same.</li>
+    </ol>
+  </section>
+  {{end}}
+
+  <details class="paste"{{if and .Name (not .Host)}} open{{end}}>
+    <summary>Or paste a public key</summary>
+    <form action="/key" method="post">
+      <label for="key">OpenSSH public key, PEM public key, PEM certificate, or SHA256 fingerprint</label>
+      <textarea id="key" name="key" rows="4" spellcheck="false" required placeholder="ssh-ed25519 AAAA…"></textarea>
+      <button type="submit">Show its sky</button>
+    </form>
+  </details>
+</main>
+
+<footer>
+  <p>Stellar is a visual fingerprint, not a cipher. A sky is a quick way to notice a change; when it matters, compare the full fingerprint.</p>
+</footer>
+</body>
+</html>

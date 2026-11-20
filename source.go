@@ -126,10 +126,17 @@ func ParsePEM(data []byte) (Key, error) {
 // With insecure set, the certificate chain is not verified: the key is then
 // whatever the network path chose to present.
 func FromHost(ctx context.Context, addr string, insecure bool) (Key, error) {
+	return FromHostWith(ctx, nil, addr, insecure)
+}
+
+// FromHostWith is FromHost over a caller-supplied dialer, which lets a
+// server restrict the addresses it agrees to connect to. A nil dialer means
+// the default one.
+func FromHostWith(ctx context.Context, netDialer *net.Dialer, addr string, insecure bool) (Key, error) {
 	if _, _, err := net.SplitHostPort(addr); err != nil {
 		addr = net.JoinHostPort(addr, "443")
 	}
-	dialer := tls.Dialer{Config: &tls.Config{InsecureSkipVerify: insecure}}
+	dialer := tls.Dialer{NetDialer: netDialer, Config: &tls.Config{InsecureSkipVerify: insecure}}
 	conn, err := dialer.DialContext(ctx, "tcp", addr)
 	if err != nil {
 		return Key{}, err
