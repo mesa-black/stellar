@@ -73,7 +73,7 @@ stellar serve -addr :8080 # or straight from the binary
 
 | Route | Purpose |
 | --- | --- |
-| `/` and `/?host=example.com` | The page. A whole URL may be pasted; only its host name is kept. |
+| `/` and `/?host=example.com` | The page. A whole URL may be pasted; only its host name is kept. A `SHA256:` fingerprint in the same field draws that key directly, with nothing fetched. |
 | `/sky/example.com.svg` | The constellation as an image, to embed elsewhere. `?size=` sets its side, from 64 to 2048 pixels. |
 | `POST /key` | The constellation of a pasted public key, certificate or fingerprint. |
 | `/healthz` | Liveness probe. |

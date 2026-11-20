@@ -203,6 +203,27 @@ func TestShare(t *testing.T) {
 	}
 }
 
+// A fingerprint typed in the website field draws its key, fetches nothing and
+// is not remembered as a host.
+func TestHomeFingerprint(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+	rec := get(t, h, "/?host="+url.QueryEscape(" SHA256:kqckL3tw6x8R1HqM3pohRjFi/6wO3yM2MXYGcV0/2qc "))
+	body := rec.Body.String()
+	if rec.Code != 200 || !strings.Contains(body, "Subevia Zidensis") {
+		t.Fatalf("status %d", rec.Code)
+	}
+	if calls.Load() != 0 {
+		t.Error("a fingerprint triggered a lookup")
+	}
+	if !strings.Contains(body, `data-host=""`) {
+		t.Error("a fingerprint is remembered as a host")
+	}
+	if rec := get(t, h, "/?host=SHA256:tooshort"); rec.Code != 422 {
+		t.Errorf("bad fingerprint: status %d", rec.Code)
+	}
+}
+
 func TestHomeErrors(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()

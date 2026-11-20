@@ -16,7 +16,7 @@
 
 <main>
   <form class="search" action="/" method="get">
-    <label for="host">Website</label>
+    <label for="host">Website, or a <code>SHA256:</code> fingerprint</label>
     <div class="row">
       <input id="host" name="host" type="text" value="{{.Query}}" placeholder="example.com"
              autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" required{{if not .Name}} autofocus{{end}}>
@@ -59,6 +59,7 @@
       <li>The hash decides every star: where it sits, how bright it is, what it joins.</li>
       <li>Your browser remembers the sky. Come back later and it tells you whether it is still the same.</li>
     </ol>
+    <p>A site name shows the sky of the key that site answers with. A document signed with other keys has another sky: to see that one, paste the <code>SHA256:</code> line the document prints.</p>
   </section>
   {{end}}
 

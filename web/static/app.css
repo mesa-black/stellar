@@ -50,6 +50,7 @@ header { padding: 40px 0 24px; text-align: center; }
 .tagline { margin: 6px 0 0; color: var(--muted); }
 
 label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 14px; }
+label code, .about code { font: .9em var(--mono); }
 
 .search { max-width: 560px; margin: 0 auto 28px; }
 .row { display: flex; gap: .6rem; align-items: stretch; }

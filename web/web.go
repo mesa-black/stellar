@@ -116,7 +116,19 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("host")
 	v := view{Query: query}
 	status := http.StatusOK
-	if query != "" {
+	if fp := strings.TrimSpace(query); strings.HasPrefix(fp, "SHA256:") {
+		// A fingerprint typed where a host name goes, as a report that prints
+		// one invites: it names a key directly, so there is nothing to fetch
+		// and no host to remember.
+		key, err := stellar.ParseFingerprint(fp)
+		if err != nil {
+			v.Error, status = "That is not a fingerprint Stellar can read: "+err.Error()+".", http.StatusUnprocessableEntity
+		} else {
+			v.Query = fp
+			v.show(key)
+			v.share("")
+		}
+	} else if query != "" {
 		host, key, err := s.resolve(r.Context(), query)
 		if err != nil {
 			v.Error, status = explain(err)
