@@ -21,7 +21,7 @@ var languageNames = map[string]string{"en": "English", "fr": "Français", "es": 
 var messages = map[string]map[string]string{
 	"en": {
 		"meta.description":   "Every website key has a sky. Stellar draws a site's public key as a constellation you can recognise at a glance.",
-		"tagline":            "Every key has its gate to the stars.",
+		"tagline":            "Every key has its stargate.",
 		"form.label":         "Website, or a <code>SHA256:</code> fingerprint",
 		"form.submit":        "Show its sky",
 		"result.remember":    "Remember the new sky",
@@ -183,7 +183,7 @@ var messages = map[string]map[string]string{
 	},
 	"es": {
 		"meta.description":   "Cada clave de un sitio web tiene un cielo. Stellar dibuja la clave pública de un sitio como una constelación que se reconoce de un vistazo.",
-		"tagline":            "Cada clave tiene su puerta a las estrellas.",
+		"tagline":            "Cada clave tiene su stargate.",
 		"form.label":         "Sitio web, o huella <code>SHA256:</code>",
 		"form.submit":        "Ver su cielo",
 		"result.remember":    "Recordar el nuevo cielo",
