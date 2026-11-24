@@ -3,6 +3,7 @@ package stellar
 import (
 	"bytes"
 	"image/png"
+	"math"
 	"testing"
 )
 
@@ -23,14 +24,21 @@ func TestPNG(t *testing.T) {
 		t.Error("two digests give the same picture")
 	}
 
-	// Every main star is on the picture: its centre is white, which no part
-	// of the night is.
+	// Every main star is on the picture: the wall of its cell is ink, which
+	// no part of the night is. A stroke that enters the cell opens the wall
+	// there, so the wall is looked for all around.
 	scale := 630.0 / 900
 	for i, s := range c.Stars {
 		x, y := starXY(s)
-		r, g, b, _ := img.At(int(600+(x-500)*scale), int(315+(y-460)*scale)).RGBA()
-		if r>>8 < 0xf0 || g>>8 < 0xf0 || b>>8 < 0xf0 {
-			t.Errorf("star %d is not drawn: %02x%02x%02x at its centre", i, r>>8, g>>8, b>>8)
+		cx, cy := 600+(x-500)*scale, 315+(y-460)*scale
+		r := (magnitudeRadius[s.Magnitude] - glyphWall/2) * scale * 1.25
+		found := false
+		for a := 0.0; a < 2*math.Pi && !found; a += 0.05 {
+			r, g, b, _ := img.At(int(cx+r*math.Cos(a)), int(cy+r*math.Sin(a))).RGBA()
+			found = r>>8 >= 0xd0 && g>>8 >= 0xd0 && b>>8 >= 0xd0
+		}
+		if !found {
+			t.Errorf("star %d is not drawn: no ink around its centre", i)
 		}
 	}
 	// And a corner is night.

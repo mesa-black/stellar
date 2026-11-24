@@ -57,6 +57,13 @@ type Server struct {
 	// decision for whoever runs the site.
 	Logs Logs
 
+	// Music is the address of a piece of music the pages play, and
+	// MusicCredit the line that says what it is. Empty turns it off: the
+	// file is read from someone else's server, which then sees the visitor's
+	// address, and what may be played is for whoever runs the site to know.
+	Music       string
+	MusicCredit string
+
 	lookup Lookup
 	now    func() time.Time
 	slots  chan struct{}
@@ -66,7 +73,7 @@ type Server struct {
 	mu    sync.Mutex
 	cache map[string]cached
 	// cards holds the preview pictures already drawn, by key.
-	cards map[[32]byte][]byte
+	cards map[drawn][]byte
 	// logs holds what the public logs said about each host.
 	logs map[string]cachedLogs
 }
@@ -84,7 +91,7 @@ func New(lookup Lookup) *Server {
 		now:    time.Now,
 		slots:  make(chan struct{}, maxLookups),
 		cache:  map[string]cached{},
-		cards:  map[[32]byte][]byte{},
+		cards:  map[drawn][]byte{},
 		logs:   map[string]cachedLogs{},
 	}
 }
@@ -99,15 +106,22 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /card/{file}", s.card)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "ok\n") })
-	return headers(mux)
+	return s.headers(mux)
 }
 
-// headers sets the security headers. The pages load nothing from elsewhere
-// and carry no inline script or style, so the policy can be strict.
-func headers(next http.Handler) http.Handler {
+// headers sets the security headers. The pages carry no inline script or
+// style and load nothing from elsewhere, except the music when there is one,
+// so the policy can be strict.
+func (s *Server) headers(next http.Handler) http.Handler {
+	csp := "default-src 'none'; img-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+	if u, err := url.Parse(s.Music); err == nil && u.Scheme == "https" && u.Hostname() != "" {
+		// The host of the music and the hosts under it: an archive hands a
+		// download over to one of its own servers.
+		csp += "; media-src https://" + u.Hostname() + " https://*." + u.Hostname()
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
-		h.Set("Content-Security-Policy", "default-src 'none'; img-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'")
+		h.Set("Content-Security-Policy", csp)
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")
 		next.ServeHTTP(w, r)
@@ -123,6 +137,14 @@ type view struct {
 	Langs     []langLink
 	// Base is the site's public address, empty when unknown.
 	Base string
+	// Music and MusicCredit are the server's; empty when there is none.
+	Music       string
+	MusicCredit string
+	// Gate is the six signs of the key shown, and Origin the sky of this
+	// site's own key, nil while that key is not known.
+	Gate   []sign
+	Origin *sign
+	origin *[32]byte
 	// CardHost is the host whose picture illustrates a link to this page.
 	CardHost string
 
@@ -177,7 +199,14 @@ type view struct {
 
 // newView starts a page in the language of the request.
 func (s *Server) newView(r *http.Request, query string) view {
-	v := view{Query: query, Base: s.BaseURL}
+	v := view{Query: query, Base: s.BaseURL, Music: s.Music, MusicCredit: s.MusicCredit}
+	if host := s.selfHost(); host != "" {
+		s.mu.Lock()
+		if hit, ok := s.cache[host]; ok {
+			v.origin = &hit.host.Key.Digest
+		}
+		s.mu.Unlock()
+	}
 	var explicit bool
 	if v.Lang, explicit = pickLanguage(r); explicit {
 		v.LangParam = v.Lang
@@ -347,6 +376,12 @@ func (s *Server) key(w http.ResponseWriter, r *http.Request) {
 func (s *Server) sky(w http.ResponseWriter, r *http.Request) {
 	name, ok := strings.CutSuffix(r.PathValue("file"), ".svg")
 	if !ok {
+		// The same sky as a square picture, for the places an SVG cannot go.
+		// One size, so that each is drawn once per key and kept.
+		if name, ok = strings.CutSuffix(r.PathValue("file"), ".png"); ok {
+			s.picture(w, r, name, mapSide, mapSide)
+			return
+		}
 		http.NotFound(w, r)
 		return
 	}
@@ -376,23 +411,28 @@ func (s *Server) card(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	s.picture(w, r, name, cardWidth, cardHeight)
+}
+
+// picture serves the PNG of a host's sky, drawn once per key and size.
+func (s *Server) picture(w http.ResponseWriter, r *http.Request, name string, width, height int) {
 	_, seen, err := s.resolve(r.Context(), name)
 	if err != nil {
 		key, status := explain(err)
 		http.Error(w, message("en", key), status)
 		return
 	}
-	digest := seen.Key.Digest
+	which := drawn{seen.Key.Digest, width, height}
 	s.mu.Lock()
-	picture, ok := s.cards[digest]
+	picture, ok := s.cards[which]
 	s.mu.Unlock()
 	if !ok {
-		picture = stellar.New(digest).PNG(cardWidth, cardHeight)
+		picture = stellar.New(which.digest).PNG(width, height)
 		s.mu.Lock()
 		if len(s.cards) >= cardsMax {
 			clear(s.cards)
 		}
-		s.cards[digest] = picture
+		s.cards[which] = picture
 		s.mu.Unlock()
 	}
 	w.Header().Set("Content-Type", "image/png")
@@ -425,8 +465,33 @@ func (v *view) announce(host string, seen stellar.Host) {
 	}
 }
 
+// drawn names a picture already drawn: a key at a size.
+type drawn struct {
+	digest        [32]byte
+	width, height int
+}
+
+// mapSide is the side of the square PNG of a sky, in pixels.
+const mapSide = 1200
+
+// sign is one sign of a gate, ready for the page.
+type sign struct {
+	Name string // what the sign is, said on hover
+	Word string // what stands under it
+	SVG  template.HTML
+}
+
 func (v *view) show(key stellar.Key) {
 	c := stellar.New(key.Digest)
+	for _, k := range stellar.Gate(key.Digest) {
+		g := stellar.Sign(k)
+		word, _, _ := strings.Cut(g.Name, " ")
+		v.Gate = append(v.Gate, sign{Name: g.Name, Word: word, SVG: template.HTML(g.GlyphSVG())})
+	}
+	if v.origin != nil {
+		o := stellar.New(*v.origin)
+		v.Origin = &sign{Name: o.Name, SVG: template.HTML(o.GlyphSVG())}
+	}
 	v.Name = c.Name
 	v.Fingerprint = key.Fingerprint()
 	v.Kind = key.Kind

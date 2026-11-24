@@ -103,6 +103,7 @@ stellar serve -addr :8080 # or straight from the binary
 | --- | --- |
 | `/` and `/?host=example.com` | The page. A whole URL may be pasted; only its host name is kept. A `SHA256:` fingerprint in the same field draws that key directly, with nothing fetched. |
 | `/sky/example.com.svg` | The constellation as an image, to embed elsewhere. `?size=` sets its side, from 64 to 2048 pixels. |
+| `/sky/example.com.png` | The same as a PNG, 1200 pixels square, without the name and fingerprint. |
 | `/card/example.com.png` | The same sky as a 1200 × 630 picture, for the preview shown under a shared link. Pages name it in their `og:image`. |
 | `POST /key` | The constellation of a pasted public key, certificate or fingerprint. |
 | `/healthz` | Liveness probe. |
@@ -135,6 +136,10 @@ It is meant to run every few minutes. What it does and does not do:
 **What the handshake says.** Under the sky of a site, the page gives the certificate's key type, its expiry and its issuer, the TLS version, the key exchange negotiated, and whether that exchange is a post-quantum hybrid: whether what travels to the site today could be recorded now and read by a quantum computer later.
 
 **Remembering a sky.** The page stores, in the visitor's browser only (`localStorage`), the fingerprint each host showed last. On a later visit it says whether the sky is the same or has changed. A change is not proof of an attack: many sites generate a new key at every certificate renewal, so their sky changes every few weeks. Sites that keep their key across renewals keep their sky.
+
+**Taking a sky away.** Under a host's sky, two links download it: `/sky/example.com.svg`, with the name and the fingerprint written in it, and `/sky/example.com.png`, a 1200-pixel square without text.
+
+**Music.** Off by default. `stellar serve -music https://… -music-credit "…"` plays the file at that address on the pages, in a loop, from the visitor's first click, with a button pinned to the corner to cut it; the choice is remembered in the browser. The file is not served by Stellar: visitors fetch it from that address, whose server sees theirs, and only once the music starts. The content security policy opens to that host and the hosts under it, for media alone. Whether a piece may be played on your site is yours to know.
 
 **Sharing a sky.** Once a sky is drawn, a "Send on Threema" link opens Threema with a message naming the host, its sky and its fingerprint, to edit before sending. It is a plain link: nothing loads from Threema until someone clicks. Start the site with its public address (`stellar serve -url https://stellar.example`, or `make serve URL=…`) and the message ends with a link back to the sky; without it, the message carries no link.
 
@@ -224,7 +229,19 @@ The mapping from digest to constellation is deterministic. All integers below ar
 
 Rendering is not normative, but a `v1` renderer must show every main star with its position, magnitude and class, and every edge.
 
+The pictures draw the figure as a glyph, in one ink: a hollow stroke from star to star, and a round cell at each star. The size of the cell is the magnitude, the brighter the larger. The mark in the cell is the class: nothing (0), a point (1), a full cell (2), a bar (3), a cross (4). The terminal has no room for marks and tells the class by colour.
+
 `TestGolden` pins this mapping, and `testdata/v1.json` lists the constellations of 32 digests in full: another implementation of v1 must reproduce every entry. A change that alters the output for an existing digest must bump the version, in the domain separator as well as in `Version`.
+
+### Gate (v1)
+
+A gate is a second, shorter way to tell a key: six signs in order, the way a gate is dialled. The signs come from a catalogue every implementation shares, so they do not look like the sky of the key: they lead to it, as coordinates do. Two keys with the same six signs in the same order are the same key as far as an aid can tell: six distinct signs out of 64 carry about 36 bits, close to what the name carries and far less than the fingerprint.
+
+1. **Catalogue.** 64 signs. Sign `k`, from 0 to 63, is the v1 constellation of `SHA-256("stellar/sign/v1\0" ‖ k)`, with `k` as one byte. Only its figure and its name are used.
+2. **Signs of a key.** A stream of its own: SHAKE256 absorbs the 16 bytes `stellar/gate/v1\0` followed by the 32-byte digest, and integers are drawn from it as above. Draw `draw(64)` until six distinct signs are held, discarding a sign already taken. Their order is the order they were drawn in.
+3. **Origin.** Whoever shows a gate may add a seventh sign: the sky of its own key, drawn whole. It tells where the key was read from, and nothing about the key.
+
+The website shows the gate under the sky, with its own sky as the origin once it knows its public address (`-url`). The command line prints the six signs by the first word of their names. `TestGateVectors` pins the catalogue and the gates, and `testdata/gate-v1.json` lists them for the digests of `testdata/v1.json`.
 
 ## Library
 

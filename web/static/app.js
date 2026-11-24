@@ -71,3 +71,73 @@
     });
   }
 })();
+
+// The music, when the site has one: on by default, cut by its button. No
+// browser lets a page play sound before the visitor's first gesture, so it
+// starts then. The file is asked for only at that moment: a visitor who cut
+// the sound, here or on an earlier visit, never asks its server for anything.
+(function () {
+  "use strict";
+
+  var button = document.getElementById("sound");
+  if (!button) return;
+
+  var words = button.dataset;
+  var audio = null;
+  var muted = false;
+  try { muted = localStorage.getItem("stellar:sound") === "off"; } catch (e) {}
+
+  function remember() {
+    try { localStorage.setItem("stellar:sound", muted ? "off" : "on"); } catch (e) {}
+  }
+
+  function forget() {
+    removeEventListener("pointerdown", first, true);
+    removeEventListener("keydown", first, true);
+  }
+
+  function start() {
+    if (muted) return;
+    if (!audio) {
+      audio = new Audio(words.src);
+      audio.loop = true;
+      audio.volume = 0.6;
+      // Going from one page to the next, the music takes up where it was.
+      try { audio.currentTime = Number(sessionStorage.getItem("stellar:sound:at")) || 0; } catch (e) {}
+    }
+    audio.play().then(function () {
+      button.setAttribute("aria-pressed", "true");
+      button.textContent = words.cut;
+      forget();
+    }).catch(function () {});
+  }
+
+  function stop() {
+    if (audio) audio.pause();
+    button.setAttribute("aria-pressed", "false");
+    button.textContent = words.back;
+  }
+
+  function first() { forget(); start(); }
+
+  button.textContent = muted ? words.back : words.first;
+  button.hidden = false;
+  button.addEventListener("click", function (event) {
+    event.stopPropagation();
+    muted = !!audio && !audio.paused;
+    remember();
+    if (muted) { stop(); } else { start(); }
+  });
+  addEventListener("pagehide", function () {
+    if (!audio) return;
+    try { sessionStorage.setItem("stellar:sound:at", String(audio.currentTime)); } catch (e) {}
+  });
+
+  if (!muted) {
+    addEventListener("pointerdown", first, true);
+    addEventListener("keydown", first, true);
+    // Tried at once: a browser that already saw the visitor act on the site
+    // lets it play.
+    start();
+  }
+})();

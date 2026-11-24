@@ -647,3 +647,75 @@ func TestStatic(t *testing.T) {
 		t.Errorf("/nope: status %d", rec.Code)
 	}
 }
+
+// The music is off unless the site was started with one. With one, the page
+// carries its switch and its credit, and the policy opens to that host alone.
+func TestMusic(t *testing.T) {
+	var calls atomic.Int32
+	quiet := get(t, New(fakeLookup(&calls)).Handler(), "/")
+	if strings.Contains(quiet.Body.String(), `id="sound"`) || strings.Contains(quiet.Header().Get("Content-Security-Policy"), "media-src") {
+		t.Error("a site without music offers some")
+	}
+
+	s := New(fakeLookup(&calls))
+	s.Music, s.MusicCredit = "https://archive.example/download/theme.mp3", "A theme, read from archive.example"
+	rec := get(t, s.Handler(), "/")
+	for _, want := range []string{`id="sound"`, `data-src="https://archive.example/download/theme.mp3"`, "A theme, read from archive.example", "Cut the sound"} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Errorf("the page lacks %q", want)
+		}
+	}
+	if csp := rec.Header().Get("Content-Security-Policy"); !strings.Contains(csp, "media-src https://archive.example https://*.archive.example") {
+		t.Errorf("CSP = %q", csp)
+	}
+}
+
+// A host's page shows its gate: the six signs of its key, and, once the site
+// knows its own key, its own sky as the origin.
+func TestGate(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	body := get(t, s.Handler(), "/?host=example.com").Body.String()
+	for _, k := range stellar.Gate(sha256.Sum256([]byte("example.com"))) {
+		if !strings.Contains(body, `<li title="`+stellar.Sign(k).Name+`">`) {
+			t.Errorf("the gate lacks the sign %s", stellar.Sign(k).Name)
+		}
+	}
+	if strings.Contains(body, `class="origin"`) {
+		t.Error("a site that does not know its own key shows an origin")
+	}
+
+	s.BaseURL = "https://stellar.example"
+	s.RefreshSelf()
+	body = get(t, s.Handler(), "/?host=example.com").Body.String()
+	own := stellar.New(sha256.Sum256([]byte("stellar.example"))).Name
+	if !strings.Contains(body, `<li class="origin" title="`+own+`">`) {
+		t.Errorf("the origin is not the site's own sky, %s", own)
+	}
+}
+
+// The sky can be taken away, as an SVG or as a square PNG.
+func TestDownload(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+	body := get(t, h, "/?host=example.com").Body.String()
+	for _, want := range []string{`href="/sky/example.com.svg?size=1200" download="example.com.svg"`, `href="/sky/example.com.png" download="example.com.png"`} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the page lacks %s", want)
+		}
+	}
+	rec := get(t, h, "/sky/example.com.png")
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/png" {
+		t.Fatalf("status %d, type %q", rec.Code, rec.Header().Get("Content-Type"))
+	}
+	img, err := png.Decode(rec.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b := img.Bounds(); b.Dx() != 1200 || b.Dy() != 1200 {
+		t.Errorf("size %v", b)
+	}
+	if rec := get(t, h, "/sky/localhost.png"); rec.Code != 400 {
+		t.Errorf("a private name: status %d", rec.Code)
+	}
+}

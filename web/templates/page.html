@@ -39,7 +39,16 @@
   {{if .Name}}
   <article class="result" id="result" data-host="{{.Host}}" data-name="{{.Name}}" data-fingerprint="{{.Fingerprint}}"
            data-new="{{.S "seen.new"}}" data-same="{{.S "seen.same"}}" data-changed="{{.S "seen.changed"}}" data-accepted="{{.S "seen.accepted"}}">
-    <div class="sky">{{.SVG}}</div>
+    <div class="sky">{{.SVG}}
+      <div class="gate">
+        <p class="over">{{.T "gate.label"}}</p>
+        <ol>
+          {{range .Gate}}<li title="{{.Name}}">{{.SVG}}<span>{{.Word}}</span></li>
+          {{end}}{{if .Origin}}<li class="origin" title="{{.Origin.Name}}">{{.Origin.SVG}}<span>{{.T "gate.origin"}}</span></li>{{end}}
+        </ol>
+        <p class="note">{{if .Origin}}{{.T "gate.text"}}{{else}}{{.T "gate.text.alone"}}{{end}}</p>
+      </div>
+    </div>
     <div class="facts">
       <h1>{{.Name}}</h1>
       <p class="status" id="status" hidden></p>
@@ -65,6 +74,11 @@
         <a class="button" href="{{.ShareURL}}" rel="noopener noreferrer" target="_blank">{{.T "share.button"}}</a>
       </p>
       {{if .Host}}
+      <p class="share">
+        <span class="over">{{.T "download.label"}}</span>
+        <a class="button" href="/sky/{{.Host}}.svg?size=1200" download="{{.Host}}.svg">SVG</a>
+        <a class="button" href="/sky/{{.Host}}.png" download="{{.Host}}.png">PNG</a>
+      </p>
       <details>
         <summary>{{.T "embed.summary"}}</summary>
         <p>{{.T "embed.text"}}</p>
@@ -148,6 +162,9 @@
   <p class="links langs">
     {{range $i, $l := .Langs}}{{if $i}}<span class="sep" aria-hidden="true">·</span>{{end}}{{if $l.Current}}<span aria-current="true">{{$l.Name}}</span>{{else}}<a href="{{$l.URL}}" hreflang="{{$l.Code}}" lang="{{$l.Code}}">{{$l.Name}}</a>{{end}}{{end}}
   </p>
+  {{if .MusicCredit}}<p class="links credit">♪ {{.MusicCredit}}</p>{{end}}
 </footer>
+{{if .Music}}<button type="button" class="sound" id="sound" hidden aria-pressed="false" data-src="{{.Music}}"
+  data-first="{{.S "sound.first"}}" data-cut="{{.S "sound.cut"}}" data-back="{{.S "sound.back"}}"></button>{{end}}
 </body>
 </html>

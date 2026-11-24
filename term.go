@@ -19,7 +19,9 @@ var brailleBit = [4][2]rune{{0x01, 0x08}, {0x02, 0x10}, {0x04, 0x20}, {0x40, 0x8
 
 var (
 	magnitudeGlyph = [Magnitudes]string{"✦", "*", "•"}
-	// classANSI are 256-colour codes matching classColors.
+	// classANSI are the 256-colour codes of the spectral classes, from hot
+	// blue to cool red. A terminal has no room for the marks the pictures
+	// use, so here the class is told by colour.
 	classANSI = [Classes]int{111, 231, 222, 215, 210}
 )
 

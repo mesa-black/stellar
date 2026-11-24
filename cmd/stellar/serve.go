@@ -22,9 +22,18 @@ func serve(args []string) error {
 	addr := fs.String("addr", "127.0.0.1:8080", "listen on `host:port`")
 	base := fs.String("url", "", "public `address` of the site, e.g. https://stellar.example; shared messages link back to it")
 	logs := fs.Bool("logs", false, "let visitors look a host up in the public certificate logs; its name is then sent to Cert Spotter (SSLMate)")
+	music := fs.String("music", "", "play the music at this https `address` on the pages, with a button to cut it; visitors fetch it from that server")
+	credit := fs.String("music-credit", "", "the `line` that says what the music is, shown at the foot of the pages")
 	fs.Parse(args)
 
 	site := web.New(web.PublicLookup)
+	if *music != "" {
+		u, err := url.Parse(*music)
+		if err != nil || u.Scheme != "https" || u.Hostname() == "" {
+			return fmt.Errorf("-music %q is not an https address", *music)
+		}
+		site.Music, site.MusicCredit = u.String(), *credit
+	}
 	if *logs {
 		site.Logs = web.CertSpotter
 	}

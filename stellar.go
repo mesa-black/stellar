@@ -126,9 +126,12 @@ func New(digest [32]byte) *Constellation {
 // stream is a deterministic source of uniform integers, keyed by the digest.
 type stream struct{ xof *sha3.SHAKE }
 
-func newStream(digest [32]byte) *stream {
+func newStream(digest [32]byte) *stream { return newStreamFor("stellar/v1\x00", digest) }
+
+// newStreamFor starts the stream of one purpose, named by its domain.
+func newStreamFor(domain string, digest [32]byte) *stream {
 	xof := sha3.NewSHAKE256()
-	xof.Write([]byte("stellar/v1\x00"))
+	xof.Write([]byte(domain))
 	xof.Write(digest[:])
 	return &stream{xof}
 }

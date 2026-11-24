@@ -83,6 +83,13 @@ func run() error {
 	}
 	fmt.Printf("Name:        %s\n", c.Name)
 	fmt.Printf("Fingerprint: %s\n", key.Fingerprint())
+	// The gate: the six signs of the key, by the first word of their names.
+	var signs []string
+	for _, k := range stellar.Gate(key.Digest) {
+		word, _, _ := strings.Cut(stellar.Sign(k).Name, " ")
+		signs = append(signs, word)
+	}
+	fmt.Printf("Gate:        %s\n", strings.Join(signs, " · "))
 	if key.Label != "" {
 		fmt.Printf("Key:         %s (%s)\n", key.Label, key.Kind)
 	} else {
