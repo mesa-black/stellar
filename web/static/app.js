@@ -141,3 +141,55 @@
     start();
   }
 })();
+
+// The sky behind the page: faint still points, and shooting stars, one thin
+// streak now and then, a first one
+// soon after the page opens and then about one a minute. None for a
+// visitor who asked their system for less motion, none while the tab is hidden.
+(function () {
+  "use strict";
+
+  if (!document.body.animate || !window.matchMedia) return;
+  var still = matchMedia("(prefers-reduced-motion: reduce)");
+
+  var heavens = document.createElement("div");
+  heavens.className = "heavens";
+  heavens.setAttribute("aria-hidden", "true");
+  document.body.appendChild(heavens);
+
+  function between(a, b) { return a + Math.random() * (b - a); }
+
+  // A few very faint points, still, sown afresh on each page: as many as the
+  // window is large, most of them a single pixel.
+  var points = Math.max(25, Math.min(90, Math.round(innerWidth * innerHeight / 22000)));
+  for (var i = 0; i < points; i++) {
+    var point = document.createElement("b");
+    var size = Math.random() < 0.8 ? 1 : between(1.4, 2);
+    point.style.width = point.style.height = size + "px";
+    point.style.left = between(0, 100) + "%";
+    point.style.top = between(0, 100) + "%";
+    point.style.opacity = between(0.12, 0.55);
+    heavens.appendChild(point);
+  }
+
+  function fall() {
+    if (document.hidden || still.matches) return;
+    // Downwards, to the left or to the right, from somewhere in the upper sky.
+    var angle = between(18, 38);
+    if (Math.random() < 0.5) angle = 180 - angle;
+    var at = "translate(" + between(0.1, 0.9) * innerWidth + "px," + between(0.02, 0.45) * innerHeight + "px) rotate(" + angle + "deg) ";
+    var star = document.createElement("i");
+    star.style.width = between(90, 160) + "px";
+    heavens.appendChild(star);
+    star.animate([
+      { transform: at + "translateX(0)", opacity: 0 },
+      { opacity: 0.7, offset: 0.25 },
+      { transform: at + "translateX(" + between(260, 420) + "px)", opacity: 0 }
+    ], { duration: between(700, 1100), easing: "ease-in" }).onfinish = function () { star.remove(); };
+  }
+
+  function next(seconds) {
+    setTimeout(function () { fall(); next(between(50, 80)); }, seconds * 1000);
+  }
+  next(between(10, 20));
+})();

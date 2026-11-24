@@ -250,6 +250,12 @@ footer .credit { font-size: 13px; }
 .sound[aria-pressed="true"] { background: var(--accent); color: #06102e; border-color: transparent; }
 .sound[aria-pressed="true"]:hover { background: #b4ccff; }
 
+/* Where the shooting stars pass: over the night, under everything else. The
+   streak is drawn head first, its tail fading behind it. */
+.heavens { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.heavens b { position: absolute; border-radius: 50%; background: #e8ecff; }
+.heavens i { position: absolute; top: 0; left: 0; height: 1px; border-radius: 1px; opacity: 0; transform-origin: 0 50%; background: linear-gradient(90deg, transparent, #e8ecff); }
+
 @media (max-width: 720px) {
   .result, .about.with-sky { grid-template-columns: 1fr; gap: 20px; }
   .self { max-width: 420px; margin: 0 auto; }
