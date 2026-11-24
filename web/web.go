@@ -149,6 +149,10 @@ type view struct {
 	Gate   []sign
 	Origin *sign
 	origin *[32]byte
+	// Chart is the place of the key among the signs, and Trip whether it
+	// also shows the place this site looked from.
+	Chart template.HTML
+	Trip  bool
 	// CardHost is the host whose picture illustrates a link to this page.
 	CardHost string
 
@@ -504,6 +508,8 @@ func (v *view) show(key stellar.Key) {
 		o := stellar.New(*v.origin)
 		v.Origin = &sign{Name: o.Name, Word: "Chevron " + strconv.Itoa(stellar.GateSigns+1), SVG: template.HTML(o.GlyphSVG())}
 	}
+	v.Trip = v.origin != nil && *v.origin != key.Digest
+	v.Chart = chart(key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"))
 	v.Name = c.Name
 	v.Fingerprint = key.Fingerprint()
 	v.Kind = key.Kind

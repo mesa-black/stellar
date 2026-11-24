@@ -48,6 +48,11 @@
         </ol>
         <p class="note">{{if .Origin}}{{.T "gate.text"}}{{else}}{{.T "gate.text.alone"}}{{end}}</p>
       </div>
+      <div class="chart">
+        <p class="over">{{.T "chart.label"}}</p>
+        {{.Chart}}
+        <p class="note">{{if .Trip}}{{.T "chart.text"}}{{else}}{{.T "chart.text.alone"}}{{end}}</p>
+      </div>
     </div>
     <div class="facts">
       <h1>{{.Name}}</h1>

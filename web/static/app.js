@@ -193,3 +193,87 @@
   }
   next(between(10, 20));
 })();
+
+// The chart turns slowly on itself, and under the finger or the mouse. The
+// page drew it once, from a fixed angle; each point carries its place in
+// space, and this script projects it again, the way web/chart.go does.
+(function () {
+  "use strict";
+
+  var chart = document.querySelector("svg[data-yaw]");
+  if (!chart || !window.requestAnimationFrame) return;
+
+  var RADIUS = 100, EYE = 5;
+  var yaw = Number(chart.dataset.yaw), pitch = Number(chart.dataset.pitch);
+
+  function place(text) { return text.split(" ").map(Number); }
+
+  var points = Array.prototype.map.call(chart.querySelectorAll("[data-p]"), function (el) {
+    return { el: el, p: place(el.dataset.p) };
+  });
+  var lines = Array.prototype.map.call(chart.querySelectorAll("[data-pts]"), function (el) {
+    return { el: el, pts: el.dataset.pts.split(";").map(place) };
+  });
+
+  function draw() {
+    var cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+    function project(p) {
+      var x = p[0] * cy + p[2] * sy, z = -p[0] * sy + p[2] * cy;
+      var y = p[1] * cp - z * sp;
+      z = p[1] * sp + z * cp;
+      var scale = RADIUS * EYE / (EYE - z);
+      return [x * scale, -y * scale, z];
+    }
+    points.forEach(function (point) {
+      var at = project(point.p);
+      point.el.setAttribute("transform", "translate(" + at[0].toFixed(1) + " " + at[1].toFixed(1) + ")");
+      point.el.setAttribute("opacity", (0.35 + 0.65 * (at[2] + 1) / 2).toFixed(2));
+    });
+    lines.forEach(function (line) {
+      line.el.setAttribute("points", line.pts.map(function (p) {
+        var at = project(p);
+        return at[0].toFixed(1) + "," + at[1].toFixed(1);
+      }).join(" "));
+    });
+  }
+
+  // Held: the chart follows the pointer, and rests a moment once let go.
+  var held = null, rest = 0;
+  chart.addEventListener("pointerdown", function (event) {
+    held = { x: event.clientX, y: event.clientY };
+    chart.classList.add("held");
+    try { chart.setPointerCapture(event.pointerId); } catch (e) {}
+  });
+  chart.addEventListener("pointermove", function (event) {
+    if (!held) return;
+    yaw += (event.clientX - held.x) * 0.01;
+    pitch = Math.max(-1.3, Math.min(1.3, pitch + (event.clientY - held.y) * 0.01));
+    held = { x: event.clientX, y: event.clientY };
+    draw();
+  });
+  function release() {
+    held = null;
+    rest = 3000;
+    chart.classList.remove("held");
+  }
+  chart.addEventListener("pointerup", release);
+  chart.addEventListener("pointercancel", release);
+
+  // One turn in two minutes; none for a visitor who asked for less motion.
+  var still = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
+  var last = 0;
+  function turn(now) {
+    var elapsed = last ? Math.min(now - last, 100) : 0;
+    last = now;
+    if (!held && !still.matches && !document.hidden) {
+      if (rest > 0) {
+        rest -= elapsed;
+      } else {
+        yaw += elapsed * 2 * Math.PI / 120000;
+        draw();
+      }
+    }
+    requestAnimationFrame(turn);
+  }
+  requestAnimationFrame(turn);
+})();

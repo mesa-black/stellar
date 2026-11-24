@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"image/png"
+	"math"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -697,6 +698,47 @@ func TestGate(t *testing.T) {
 	}
 	if !strings.Contains(body, "<span>Chevron 7</span><span>origin</span>") {
 		t.Error("the origin is not chevron 7")
+	}
+}
+
+// The chart shows the 64 signs and the place of the key, and the place of the
+// site outside the sphere once the site knows its own key and looks elsewhere.
+func TestChart(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	body := get(t, s.Handler(), "/?host=example.com").Body.String()
+	start := strings.Index(body, `<div class="chart">`)
+	if start < 0 {
+		t.Fatal("no chart")
+	}
+	alone := body[start:]
+	if got := strings.Count(alone, "data-p="); got != stellar.GateCatalogue+1 {
+		t.Errorf("%d points, want the %d signs and the arrival", got, stellar.GateCatalogue)
+	}
+	if got := strings.Count(alone, `class="lit"`); got != stellar.GateSigns {
+		t.Errorf("%d signs lit, want %d", got, stellar.GateSigns)
+	}
+	if got := strings.Count(alone, `class="chord"`); got != stellar.GateSigns/2 {
+		t.Errorf("%d lines, want %d", got, stellar.GateSigns/2)
+	}
+	if strings.Contains(alone, `class="from"`) || strings.Contains(alone, `class="trip"`) {
+		t.Error("a site that does not know its own key shows an origin")
+	}
+
+	s.BaseURL = "https://stellar.example"
+	s.RefreshSelf()
+	body = get(t, s.Handler(), "/?host=example.com").Body.String()
+	if !strings.Contains(body, `class="from"`) || !strings.Contains(body, `class="trip"`) {
+		t.Error("the chart lacks the origin and the trip")
+	}
+	origin := stellar.Place(sha256.Sum256([]byte("stellar.example")))
+	if p := away(origin); math.Abs(math.Sqrt(p[0]*p[0]+p[1]*p[1]+p[2]*p[2])-chartAway) > 1e-9 {
+		t.Errorf("the origin stands at %v, not outside the sphere", p)
+	}
+	// Looking at itself, the site is both ends: there is no trip to draw.
+	body = get(t, s.Handler(), "/?host=stellar.example").Body.String()
+	if strings.Contains(body, `class="from"`) || strings.Contains(body, `class="trip"`) {
+		t.Error("the site draws a trip to itself")
 	}
 }
 
