@@ -154,7 +154,7 @@ func TestPublicLookupRefusesLoopback(t *testing.T) {
 func TestHomeEmpty(t *testing.T) {
 	var calls atomic.Int32
 	rec := get(t, New(fakeLookup(&calls)).Handler(), "/")
-	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Every key has a sky") {
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "Every key has its gate to the stars") {
 		t.Fatalf("status %d, body %q", rec.Code, rec.Body.String())
 	}
 	// The title's star is an SVG too; a constellation is the one with a role.
@@ -365,10 +365,10 @@ func TestLanguage(t *testing.T) {
 		return rec.Header().Get("Content-Language") + "|" + rec.Body.String()
 	}
 
-	if body := page("/", ""); !strings.HasPrefix(body, "en|") || !strings.Contains(body, "Every key has a sky.") {
+	if body := page("/", ""); !strings.HasPrefix(body, "en|") || !strings.Contains(body, "Every key has its gate to the stars.") {
 		t.Error("no preference is not English")
 	}
-	if body := page("/", "fr-FR,fr;q=0.9,en;q=0.8"); !strings.HasPrefix(body, "fr|") || !strings.Contains(body, "À chaque clé son ciel.") || strings.Contains(body, `name="lang"`) {
+	if body := page("/", "fr-FR,fr;q=0.9,en;q=0.8"); !strings.HasPrefix(body, "fr|") || !strings.Contains(body, "À chaque clé sa porte des étoiles.") || strings.Contains(body, `name="lang"`) {
 		t.Error("a French browser is not answered in French, or the choice is forced on it")
 	}
 	if body := page("/", "de,es;q=0.5"); !strings.HasPrefix(body, "es|") {
