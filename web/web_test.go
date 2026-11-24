@@ -681,6 +681,9 @@ func TestGate(t *testing.T) {
 			t.Errorf("the gate lacks the sign %s", stellar.Sign(k).Name)
 		}
 	}
+	if !strings.Contains(body, "<span>Chevron 1</span>") || !strings.Contains(body, "<span>Chevron 6</span>") || strings.Contains(body, "Chevron 7") {
+		t.Error("the six signs are not numbered as chevrons 1 to 6")
+	}
 	if strings.Contains(body, `class="origin"`) {
 		t.Error("a site that does not know its own key shows an origin")
 	}
@@ -691,6 +694,9 @@ func TestGate(t *testing.T) {
 	own := stellar.New(sha256.Sum256([]byte("stellar.example"))).Name
 	if !strings.Contains(body, `<li class="origin" title="`+own+`">`) {
 		t.Errorf("the origin is not the site's own sky, %s", own)
+	}
+	if !strings.Contains(body, "<span>Chevron 7</span><span>origin</span>") {
+		t.Error("the origin is not chevron 7")
 	}
 }
 

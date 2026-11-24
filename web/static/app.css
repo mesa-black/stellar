@@ -153,7 +153,7 @@ button.quiet:hover { background: var(--panel); }
 .gate ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .gate li { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px 5px; border: 1px solid var(--line); border-radius: var(--radius); color: var(--text); }
 .gate li svg { display: block; width: 100%; height: auto; box-shadow: none; border-radius: 0; }
-.gate li span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; color: var(--muted); font: 500 .58rem/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.gate li span { max-width: 100%; text-align: center; color: var(--muted); font: 500 .58rem/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 .gate .origin { position: relative; border-color: var(--accent); color: var(--accent); }
 .gate .origin span { color: var(--accent); }
 .gate .origin::before { content: ""; position: absolute; top: -7px; left: 50%; width: 10px; height: 10px; margin-left: -5px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 50% 100%); }

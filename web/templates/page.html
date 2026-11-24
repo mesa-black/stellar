@@ -44,7 +44,7 @@
         <p class="over">{{.T "gate.label"}}</p>
         <ol>
           {{range .Gate}}<li title="{{.Name}}">{{.SVG}}<span>{{.Word}}</span></li>
-          {{end}}{{if .Origin}}<li class="origin" title="{{.Origin.Name}}">{{.Origin.SVG}}<span>{{.T "gate.origin"}}</span></li>{{end}}
+          {{end}}{{if .Origin}}<li class="origin" title="{{.Origin.Name}}">{{.Origin.SVG}}<span>{{.Origin.Word}}</span><span>{{.T "gate.origin"}}</span></li>{{end}}
         </ol>
         <p class="note">{{if .Origin}}{{.T "gate.text"}}{{else}}{{.T "gate.text.alone"}}{{end}}</p>
       </div>

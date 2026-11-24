@@ -494,14 +494,15 @@ type sign struct {
 
 func (v *view) show(key stellar.Key) {
 	c := stellar.New(key.Digest)
-	for _, k := range stellar.Gate(key.Digest) {
+	// Numbered like the chevrons of a gate; the name of a sign is said on
+	// hover. "Chevron" is the same word in the three languages.
+	for i, k := range stellar.Gate(key.Digest) {
 		g := stellar.Sign(k)
-		word, _, _ := strings.Cut(g.Name, " ")
-		v.Gate = append(v.Gate, sign{Name: g.Name, Word: word, SVG: template.HTML(g.GlyphSVG())})
+		v.Gate = append(v.Gate, sign{Name: g.Name, Word: "Chevron " + strconv.Itoa(i+1), SVG: template.HTML(g.GlyphSVG())})
 	}
 	if v.origin != nil {
 		o := stellar.New(*v.origin)
-		v.Origin = &sign{Name: o.Name, SVG: template.HTML(o.GlyphSVG())}
+		v.Origin = &sign{Name: o.Name, Word: "Chevron " + strconv.Itoa(stellar.GateSigns+1), SVG: template.HTML(o.GlyphSVG())}
 	}
 	v.Name = c.Name
 	v.Fingerprint = key.Fingerprint()
