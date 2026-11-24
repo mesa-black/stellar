@@ -21,15 +21,15 @@ func (c *Constellation) PNG(w, h int) []byte {
 	// Night: the same gradient as the SVG, centred a little above the middle.
 	inner, outer := rgb(0x16, 0x20, 0x4a), rgb(0x05, 0x06, 0x0f)
 	cx, cy, reach := float64(w)/2, float64(h)*0.42, math.Hypot(float64(w), float64(h))*0.55
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			t := math.Min(1, math.Hypot(float64(x)-cx, float64(y)-cy)/reach)
-			cv.set(x, y, inner.mix(outer, t))
-		}
+	// Computed, not kept: a second copy of the picture to cut the inside of
+	// the glyph out of the ink would double the memory a drawing takes.
+	night := func(i int) fcolor {
+		x, y := i%w, i/w
+		return inner.mix(outer, math.Min(1, math.Hypot(float64(x)-cx, float64(y)-cy)/reach))
 	}
-
-	// Kept as painted, to cut the inside of the glyph out of the ink.
-	night := append([]fcolor(nil), cv.px...)
+	for i := range cv.px {
+		cv.px[i] = night(i)
+	}
 
 	// The background stars are spread over the whole picture.
 	faint := rgb(0xcf, 0xd8, 0xff)
@@ -65,7 +65,7 @@ func (c *Constellation) PNG(w, h int) []byte {
 		}
 	}
 	layer(ink, 0)
-	layer(func(i int) fcolor { return night[i] }, wall)
+	layer(night, wall)
 
 	// The mark of the class, in the cell.
 	for _, s := range c.Stars {
@@ -93,12 +93,16 @@ func (c *Constellation) PNG(w, h int) []byte {
 // A small painter: straight alpha blending on a float buffer, with edges
 // softened over one pixel. Enough for discs and lines; nothing here is a
 // general rasteriser.
-type fcolor struct{ r, g, b float64 }
+//
+// A colour is three 32-bit floats: the buffer is the memory a drawing takes,
+// twelve bytes a pixel, and the site draws within a small limit.
+type fcolor struct{ r, g, b float32 }
 
-func rgb(r, g, b uint8) fcolor { return fcolor{float64(r), float64(g), float64(b)} }
+func rgb(r, g, b uint8) fcolor { return fcolor{float32(r), float32(g), float32(b)} }
 
 func (a fcolor) mix(b fcolor, t float64) fcolor {
-	return fcolor{a.r + (b.r-a.r)*t, a.g + (b.g-a.g)*t, a.b + (b.b-a.b)*t}
+	u := float32(t)
+	return fcolor{a.r + (b.r-a.r)*u, a.g + (b.g-a.g)*u, a.b + (b.b-a.b)*u}
 }
 
 // hexColor reads "#rrggbb".
@@ -121,8 +125,6 @@ type canvas struct {
 }
 
 func newCanvas(w, h int) *canvas { return &canvas{w, h, make([]fcolor, w*h)} }
-
-func (cv *canvas) set(x, y int, c fcolor) { cv.px[y*cv.w+x] = c }
 
 // paint gives the colour to lay on a pixel, from its index in the buffer.
 type paint func(i int) fcolor
@@ -176,4 +178,6 @@ func (cv *canvas) image() image.Image {
 	return img
 }
 
-func clamp8(v float64) uint8 { return color.RGBA{R: uint8(math.Max(0, math.Min(255, v+0.5)))}.R }
+func clamp8(v float32) uint8 {
+	return color.RGBA{R: uint8(math.Max(0, math.Min(255, float64(v)+0.5)))}.R
+}

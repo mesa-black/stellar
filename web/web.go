@@ -13,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -69,6 +70,9 @@ type Server struct {
 	slots  chan struct{}
 	// selfBusy is set while the site's own key is being fetched again.
 	selfBusy atomic.Bool
+
+	// drawing is held while a PNG is drawn.
+	drawing sync.Mutex
 
 	mu    sync.Mutex
 	cache map[string]cached
@@ -427,7 +431,14 @@ func (s *Server) picture(w http.ResponseWriter, r *http.Request, name string, wi
 	picture, ok := s.cards[which]
 	s.mu.Unlock()
 	if !ok {
+		// One at a time: a drawing takes some megabytes while it lasts, and
+		// the site lives within a small memory limit.
+		s.drawing.Lock()
 		picture = stellar.New(which.digest).PNG(width, height)
+		// Given back at once: left to itself the runtime keeps the buffers
+		// of the last few drawings, and they add up past the limit.
+		debug.FreeOSMemory()
+		s.drawing.Unlock()
 		s.mu.Lock()
 		if len(s.cards) >= cardsMax {
 			clear(s.cards)
@@ -472,7 +483,7 @@ type drawn struct {
 }
 
 // mapSide is the side of the square PNG of a sky, in pixels.
-const mapSide = 1200
+const mapSide = 1024
 
 // sign is one sign of a gate, ready for the page.
 type sign struct {

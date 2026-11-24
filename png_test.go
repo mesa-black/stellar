@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"image/png"
 	"math"
+	"runtime"
 	"testing"
 )
 
@@ -44,6 +45,19 @@ func TestPNG(t *testing.T) {
 	// And a corner is night.
 	if r, g, b, _ := img.At(2, 628).RGBA(); r>>8 > 0x30 || g>>8 > 0x30 || b>>8 > 0x60 {
 		t.Errorf("the corner is %02x%02x%02x", r>>8, g>>8, b>>8)
+	}
+}
+
+// The site draws within a memory limit of a few tens of megabytes: a drawing
+// must stay well under it, whatever is added to the picture.
+func TestPNGMemory(t *testing.T) {
+	c := New(digestOf(3))
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	c.PNG(1024, 1024)
+	runtime.ReadMemStats(&after)
+	if used := (after.TotalAlloc - before.TotalAlloc) >> 20; used > 24 {
+		t.Errorf("a 1024-pixel square takes %d MiB to draw", used)
 	}
 }
 

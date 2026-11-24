@@ -103,7 +103,7 @@ stellar serve -addr :8080 # or straight from the binary
 | --- | --- |
 | `/` and `/?host=example.com` | The page. A whole URL may be pasted; only its host name is kept. A `SHA256:` fingerprint in the same field draws that key directly, with nothing fetched. |
 | `/sky/example.com.svg` | The constellation as an image, to embed elsewhere. `?size=` sets its side, from 64 to 2048 pixels. |
-| `/sky/example.com.png` | The same as a PNG, 1200 pixels square, without the name and fingerprint. |
+| `/sky/example.com.png` | The same as a PNG, 1024 pixels square, without the name and fingerprint. |
 | `/card/example.com.png` | The same sky as a 1200 × 630 picture, for the preview shown under a shared link. Pages name it in their `og:image`. |
 | `POST /key` | The constellation of a pasted public key, certificate or fingerprint. |
 | `/healthz` | Liveness probe. |
@@ -137,7 +137,7 @@ It is meant to run every few minutes. What it does and does not do:
 
 **Remembering a sky.** The page stores, in the visitor's browser only (`localStorage`), the fingerprint each host showed last. On a later visit it says whether the sky is the same or has changed. A change is not proof of an attack: many sites generate a new key at every certificate renewal, so their sky changes every few weeks. Sites that keep their key across renewals keep their sky.
 
-**Taking a sky away.** Under a host's sky, two links download it: `/sky/example.com.svg`, with the name and the fingerprint written in it, and `/sky/example.com.png`, a 1200-pixel square without text.
+**Taking a sky away.** Under a host's sky, two links download it: `/sky/example.com.svg`, with the name and the fingerprint written in it, and `/sky/example.com.png`, a 1024-pixel square without text.
 
 **Music.** Off by default. `stellar serve -music https://… -music-credit "…"` plays the file at that address on the pages, in a loop, from the visitor's first click, with a button pinned to the corner to cut it; the choice is remembered in the browser. The file is not served by Stellar: visitors fetch it from that address, whose server sees theirs, and only once the music starts. The content security policy opens to that host and the hosts under it, for media alone. Whether a piece may be played on your site is yours to know.
 

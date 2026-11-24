@@ -712,7 +712,7 @@ func TestDownload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if b := img.Bounds(); b.Dx() != 1200 || b.Dy() != 1200 {
+	if b := img.Bounds(); b.Dx() != 1024 || b.Dy() != 1024 {
 		t.Errorf("size %v", b)
 	}
 	if rec := get(t, h, "/sky/localhost.png"); rec.Code != 400 {
