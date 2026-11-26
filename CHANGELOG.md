@@ -1,10 +1,16 @@
 # Changelog
 
 What each release of the command line brought. The website follows `main`
-and is always ahead of the last entry: what it has gained since is under
+and may be ahead of the last entry: what it has gained since is under
 *Unreleased*.
 
 ## Unreleased
+
+Nothing yet.
+
+## v0.5.0 — 2026-11-27
+
+Two keys, side by side.
 
 - **Check a key.** Under the gate of a host, a visitor pastes the key they
   were given by another road, and the site says whether it is the key the
