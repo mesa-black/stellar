@@ -523,17 +523,26 @@ func (s *Server) picture(w http.ResponseWriter, r *http.Request, name string, wi
 		// One at a time: a drawing takes some megabytes while it lasts, and
 		// the site lives within a small memory limit.
 		s.drawing.Lock()
-		picture = stellar.New(which.digest).PNG(width, height)
-		// Given back at once: left to itself the runtime keeps the buffers
-		// of the last few drawings, and they add up past the limit.
-		debug.FreeOSMemory()
-		s.drawing.Unlock()
+		// Looked for again once the turn has come: those who waited behind
+		// the one drawing this very picture take it, and do not draw it
+		// again one after the other.
 		s.mu.Lock()
-		if len(s.cards) >= cardsMax {
-			clear(s.cards)
-		}
-		s.cards[which] = picture
+		picture, ok = s.cards[which]
 		s.mu.Unlock()
+		if !ok {
+			picture = stellar.New(which.digest).PNG(width, height)
+			// Given back at once: left to itself the runtime keeps the
+			// buffers of the last few drawings, and they add up past the
+			// limit.
+			debug.FreeOSMemory()
+			s.mu.Lock()
+			if len(s.cards) >= cardsMax {
+				clear(s.cards)
+			}
+			s.cards[which] = picture
+			s.mu.Unlock()
+		}
+		s.drawing.Unlock()
 	}
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "public, max-age=300")

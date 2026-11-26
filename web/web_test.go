@@ -20,6 +20,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -1010,6 +1011,35 @@ func TestVerify(t *testing.T) {
 	}
 	if rec := get(t, h, "/signs/signs-000000000000.svg"); rec.Code != 404 {
 		t.Errorf("another name for the picture: status %d", rec.Code)
+	}
+}
+
+// Many visitors asking for one picture at once get it drawn once: those who
+// waited for their turn take what the first one drew.
+func TestPictureIsDrawnOnce(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	h := s.Handler()
+	var wg sync.WaitGroup
+	start := time.Now()
+	for i := 0; i < 24; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if rec := get(t, h, "/card/example.com.png"); rec.Code != 200 {
+				t.Errorf("status %d", rec.Code)
+			}
+		}()
+	}
+	wg.Wait()
+	all := time.Since(start)
+	start = time.Now()
+	stellar.New(sha256.Sum256([]byte("example.com"))).PNG(cardWidth, cardHeight)
+	one := time.Since(start)
+	// Drawn once, the 24 answers cost about one drawing; drawn each in turn
+	// they would cost 24.
+	if all > 6*one+200*time.Millisecond {
+		t.Errorf("24 requests for one picture took %v, one drawing takes %v", all, one)
 	}
 }
 
