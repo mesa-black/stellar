@@ -6,7 +6,7 @@
 // The security rests entirely on the SHA-256 digest of the key it draws.
 //
 // The mapping from digest to constellation is deterministic and versioned.
-// See the "Algorithm" section of the README for the normative description.
+// See docs/spec.md for the normative description.
 package stellar
 
 import (

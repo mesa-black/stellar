@@ -6,7 +6,8 @@ things true.
 ## The rules
 
 **The mapping does not move.** Version 1 turns a digest into a sky, a name
-and a gate, and `testdata/v1.json` and `testdata/gate-v1.json` pin it:
+and a gate. [docs/spec.md](docs/spec.md) describes it, and
+`testdata/v1.json` and `testdata/gate-v1.json` pin it:
 another implementation must draw the same thing, and Sablier's already does.
 A change that makes `TestGolden` or `TestGateVectors` fail is a new version
 of the mapping, not a fix. How a sky is rendered may change; what it holds
