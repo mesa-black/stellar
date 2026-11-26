@@ -61,6 +61,15 @@ var chartLook = map[string]string{
 	"arrival": `fill="#e8ecff"`,
 	"from":    `fill="#8fb4ff"`,
 	"halo":    `fill="none" stroke="#e8ecff" stroke-width=".7"`,
+	"other":   `fill="#9be3b4"`,
+	"span":    `fill="none" stroke="#9be3b4" stroke-width="1" stroke-dasharray="3 3" stroke-linecap="round"`,
+}
+
+// apart returns how far the places of two keys are from each other, in radii
+// of the sphere of the signs: between 0 and 2.
+func apart(a, b [32]byte) float64 {
+	p, q := stellar.Place(a), stellar.Place(b)
+	return math.Sqrt((p[0]-q[0])*(p[0]-q[0]) + (p[1]-q[1])*(p[1]-q[1]) + (p[2]-q[2])*(p[2]-q[2]))
 }
 
 // nearest returns the point of the line from a to b nearest to p.
@@ -82,7 +91,10 @@ func nearest(p, a, b [3]float64) [3]float64 {
 // On the page it is styled by the stylesheet and turned by the script. Taken
 // away as a file (alone), it carries its own colours, its night and its
 // name, and stays as it was drawn.
-func chart(digest [32]byte, origin *[32]byte, arrival, from string, alone bool) template.HTML {
+//
+// With another key to compare (other), the place of that key is drawn too,
+// under its label, and a line joins the two places.
+func chart(digest [32]byte, origin *[32]byte, arrival, from string, alone bool, other *[32]byte, otherLabel string) template.HTML {
 	look := func(class string) string {
 		if !alone {
 			return `class="` + class + `"`
@@ -90,7 +102,7 @@ func chart(digest [32]byte, origin *[32]byte, arrival, from string, alone bool) 
 		return chartLook[class]
 	}
 	if alone {
-		arrival, from = strings.ToUpper(arrival), strings.ToUpper(from)
+		arrival, from, otherLabel = strings.ToUpper(arrival), strings.ToUpper(from), strings.ToUpper(otherLabel)
 	}
 	// Seen first from where the origin stands clear of the sphere, to its
 	// right, rather than in front of it or behind.
@@ -128,7 +140,7 @@ func chart(digest [32]byte, origin *[32]byte, arrival, from string, alone bool) 
 	point := func(class string, p [3]float64, inside string) {
 		x, y, near := project(p, yaw)
 		depth := 0.35 + 0.65*(near+1)/2
-		if alone && (class == "arrival" || class == "from" || class == "foot") {
+		if alone && (class == "arrival" || class == "from" || class == "foot" || class == "other") {
 			// The stylesheet keeps these at full light; so does the file.
 			depth = 1
 		}
@@ -178,6 +190,11 @@ func chart(digest [32]byte, origin *[32]byte, arrival, from string, alone bool) 
 	}
 	for _, foot := range feet {
 		point("foot", foot, `<circle r="1.6"/>`)
+	}
+	if other != nil && *other != digest {
+		there := stellar.Place(*other)
+		line("span", here, there)
+		point("other", there, fmt.Sprintf(`<circle r="3.4"/><text y="-8" text-anchor="middle">%s</text>`, html.EscapeString(otherLabel)))
 	}
 	if trip {
 		point("from", start, fmt.Sprintf(`<circle r="3.4"/><text y="13" text-anchor="middle">%s</text>`, html.EscapeString(from)))

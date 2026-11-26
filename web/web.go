@@ -162,6 +162,13 @@ type view struct {
 	// write it, and StardateOf the same moment in plain words.
 	Stardate   string
 	StardateOf string
+	// With is another host, whose key is placed on the chart beside this
+	// one: its sky, how far apart the two places are, and whether the two
+	// hosts serve the same key. WithQuery is what was typed and WithError
+	// why it could not be read.
+	With, WithQuery, WithName, WithApart, WithError string
+	WithSame                                        bool
+	with                                            *[32]byte
 	// Chart is the place of the key among the signs, and Trip whether it
 	// also shows the place this site looked from.
 	Chart template.HTML
@@ -291,6 +298,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 			v.Error = v.S(key)
 		} else {
 			v.Query, v.Host = host, host
+			s.compare(r, &v)
 			v.show(seen.Key)
 			v.KeyAlgorithm, v.Issuer = seen.KeyAlgorithm, seen.Issuer
 			v.Version, v.KeyExchange, v.PostQuantum = seen.Version, seen.KeyExchange, seen.PostQuantum
@@ -425,6 +433,23 @@ func (s *Server) sky(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, stellar.New(key.Digest).SVG(size, key.Fingerprint()))
 }
 
+// compare reads the other host a visitor asked to place on the chart, with=
+// in the address. It is fetched like any host; one that cannot be read
+// leaves the chart as it is, and the page says why.
+func (s *Server) compare(r *http.Request, v *view) {
+	v.WithQuery = strings.TrimSpace(r.URL.Query().Get("with"))
+	if v.WithQuery == "" {
+		return
+	}
+	host, seen, err := s.resolve(r.Context(), v.WithQuery)
+	if err != nil {
+		key, _ := explain(err)
+		v.WithError = v.S(key)
+		return
+	}
+	v.With, v.WithQuery, v.with = host, host, &seen.Key.Digest
+}
+
 // chartFile serves the chart of a host as a file to keep,
 // /chart/example.com.svg: the chart of the page, seen from where the page
 // first shows it, with its own colours and the name of the sky under it.
@@ -443,7 +468,8 @@ func (s *Server) chartFile(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "image/svg+xml")
 	w.Header().Set("Cache-Control", "public, max-age=300")
-	io.WriteString(w, string(chart(seen.Key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"), true)))
+	s.compare(r, &v)
+	io.WriteString(w, string(chart(seen.Key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"), true, v.with, v.With)))
 }
 
 // card serves the picture a messaging application shows under a link to a
@@ -561,7 +587,16 @@ func (v *view) show(key stellar.Key) {
 		v.Origin = &sign{Name: o.Name, Word: "Chevron " + strconv.Itoa(stellar.GateSigns+1), SVG: template.HTML(o.GlyphSVG())}
 	}
 	v.Trip = v.origin != nil && *v.origin != key.Digest
-	v.Chart = chart(key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"), false)
+	v.Chart = chart(key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"), false, v.with, v.With)
+	if v.with != nil {
+		v.WithName = stellar.New(*v.with).Name
+		v.WithSame = *v.with == key.Digest
+		v.WithApart = strconv.FormatFloat(apart(key.Digest, *v.with), 'f', 2, 64)
+		if v.Lang != "en" {
+			// French and Spanish write the decimal mark as a comma.
+			v.WithApart = strings.Replace(v.WithApart, ".", ",", 1)
+		}
+	}
 	v.Name = c.Name
 	v.Fingerprint = key.Fingerprint()
 	v.Kind = key.Kind

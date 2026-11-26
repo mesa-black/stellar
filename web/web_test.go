@@ -18,6 +18,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -889,6 +890,42 @@ func TestStardate(t *testing.T) {
 	}
 	if !strings.Contains(body, `</svg>2026.90</dd>`) {
 		t.Error("the stardate is not 2026.90")
+	}
+}
+
+// Another host can be placed on the chart: its point, the line to it, and
+// how far apart the two keys stand.
+func TestCompare(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+	body := get(t, h, "/?host=example.com").Body.String()
+	if strings.Contains(body, `class="other"`) || !strings.Contains(body, `name="with"`) {
+		t.Error("a page with nothing to compare draws another key, or offers no way to")
+	}
+	body = get(t, h, "/?host=example.com&with=Example.ORG").Body.String()
+	a, b := sha256.Sum256([]byte("example.com")), sha256.Sum256([]byte("example.org"))
+	want := strconv.FormatFloat(apart(a, b), 'f', 2, 64)
+	for _, part := range []string{`class="other"`, `class="span"`, ">example.org</text>", stellar.New(b).Name, want + " radius", `with=example.org`} {
+		if !strings.Contains(body, part) {
+			t.Errorf("the comparison lacks %q", part)
+		}
+	}
+	if d := apart(a, b); d <= 0 || d > 2 {
+		t.Errorf("the two places are %v apart", d)
+	}
+	// The same host again is the same key: one place, and the page says so.
+	body = get(t, h, "/?host=example.com&with=example.com").Body.String()
+	if strings.Contains(body, `class="other"`) || !strings.Contains(body, "serves the same key") {
+		t.Error("the same key is drawn twice, or not said to be the same")
+	}
+	// A host that cannot be read leaves the chart alone and says why.
+	rec := get(t, h, "/?host=example.com&with=down.example")
+	body = rec.Body.String()
+	if rec.Code != 200 || strings.Contains(body, `class="other"`) || !strings.Contains(body, `class="note with bad"`) {
+		t.Errorf("an unreachable host to compare: status %d", rec.Code)
+	}
+	if file := get(t, h, "/chart/example.com.svg?with=example.org").Body.String(); !strings.Contains(file, ">EXAMPLE.ORG</text>") || strings.Contains(file, "class=") {
+		t.Error("the chart as a file does not carry the other key")
 	}
 }
 

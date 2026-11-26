@@ -164,6 +164,13 @@ button.quiet:hover { background: var(--panel); }
 .chart .over { margin: 0 0 8px; }
 .chart .note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 .chart .take { margin: 12px 0 0; }
+/* Another key on the chart: its point and the line to it, in green. */
+.chart .other { opacity: 1; }
+.chart .other circle, .chart .other text { fill: var(--ok); }
+.chart .span { stroke: var(--ok); stroke-width: 1; stroke-dasharray: 3 3; }
+.chart .with { color: var(--text); }
+.chart .with.bad { color: var(--bad); }
+.compare { margin-top: 14px; }
 .chart svg { background: radial-gradient(circle at 50% 45%, var(--dusk), var(--night) 75%); cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .chart svg.held { cursor: grabbing; }
 .chart .rim { fill: none; stroke: var(--line); stroke-width: .8; }
