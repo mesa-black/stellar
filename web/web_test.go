@@ -712,8 +712,26 @@ func TestChart(t *testing.T) {
 		t.Fatal("no chart")
 	}
 	alone := body[start:]
-	if got := strings.Count(alone, "data-p="); got != stellar.GateCatalogue+1 {
-		t.Errorf("%d points, want the %d signs and the arrival", got, stellar.GateCatalogue)
+	if got := strings.Count(alone, "data-p="); got != stellar.GateCatalogue+1+stellar.GateSigns/2 {
+		t.Errorf("%d points, want the %d signs, the arrival and a foot on each line", got, stellar.GateCatalogue)
+	}
+	if got := strings.Count(alone, `class="tie"`); got != stellar.GateSigns/2 {
+		t.Errorf("%d ties from the arrival to its lines, want %d", got, stellar.GateSigns/2)
+	}
+	// The arrival is the middle of the points nearest to it on its lines.
+	digest := sha256.Sum256([]byte("example.com"))
+	here, gate := stellar.Place(digest), stellar.Gate(digest)
+	var middle [3]float64
+	for i := 0; i < stellar.GateSigns; i += 2 {
+		foot := nearest(here, stellar.SignPlace(gate[i]), stellar.SignPlace(gate[i+1]))
+		for j := range middle {
+			middle[j] += foot[j] / 3
+		}
+	}
+	for j := range middle {
+		if math.Abs(middle[j]-here[j]) > 1e-4 {
+			t.Errorf("the arrival %v is not the middle of its three feet %v", here, middle)
+		}
 	}
 	if got := strings.Count(alone, `class="lit"`); got != stellar.GateSigns {
 		t.Errorf("%d signs lit, want %d", got, stellar.GateSigns)

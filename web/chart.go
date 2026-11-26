@@ -47,6 +47,17 @@ func project(p [3]float64, yaw float64) (x, y, near float64) {
 	return px * scale, -py * scale, pz
 }
 
+// nearest returns the point of the line from a to b nearest to p.
+func nearest(p, a, b [3]float64) [3]float64 {
+	var along, length float64
+	for j := range p {
+		along += (p[j] - a[j]) * (b[j] - a[j])
+		length += (b[j] - a[j]) * (b[j] - a[j])
+	}
+	t := math.Max(0, math.Min(1, along/length))
+	return [3]float64{a[0] + t*(b[0]-a[0]), a[1] + t*(b[1]-a[1]), a[2] + t*(b[2]-a[2])}
+}
+
 // chart draws the place of a key among the signs: the sphere of the 64
 // signs, the six of its gate joined two by two, the place they lead to, and,
 // when the site knows its own key, the place it looked from, outside the
@@ -98,10 +109,18 @@ func chart(digest [32]byte, origin *[32]byte, arrival, from string) template.HTM
 	for i, k := range gate {
 		chevron[k] = i + 1
 	}
-	for i := 0; i < stellar.GateSigns; i += 2 {
-		line("chord", stellar.SignPlace(gate[i]), stellar.SignPlace(gate[i+1]))
-	}
 	here := stellar.Place(digest)
+	// Each line, and what ties the arrival to it: a short stroke to the
+	// point of the line nearest to it. The arrival is the middle of those
+	// three points, which is all its definition says.
+	var feet [][3]float64
+	for i := 0; i < stellar.GateSigns; i += 2 {
+		a, b := stellar.SignPlace(gate[i]), stellar.SignPlace(gate[i+1])
+		line("chord", a, b)
+		foot := nearest(here, a, b)
+		line("tie", here, foot)
+		feet = append(feet, foot)
+	}
 	if trip {
 		line("trip", start, here)
 	}
@@ -111,7 +130,10 @@ func chart(digest [32]byte, origin *[32]byte, arrival, from string) template.HTM
 				html.EscapeString(stellar.Sign(k).Name), n))
 			continue
 		}
-		point("sign", stellar.SignPlace(k), `<circle r="1.1"/>`)
+		point("sign", stellar.SignPlace(k), `<circle r=".9"/>`)
+	}
+	for _, foot := range feet {
+		point("foot", foot, `<circle r="1.6"/>`)
 	}
 	if trip {
 		point("from", start, fmt.Sprintf(`<circle r="3.4"/><text y="13" text-anchor="middle">%s</text>`, html.EscapeString(from)))

@@ -248,7 +248,7 @@ The website shows the gate under the sky, with its own sky as the origin once it
 Under the gate, the website draws where the key stands in space. This is a picture of the gate and nothing more: it carries no bit the six signs do not carry, and it is not part of v1.
 
 - **The signs.** The 64 signs of the catalogue stand at fixed places on a sphere of radius one, along a spiral from one pole to the other: sign `k` is at height `y = 1 − 2(k + ½)/64`, turned by `k` golden angles (`π(3 − √5)` each).
-- **The arrival.** The six signs of a gate, taken two by two in their order (1–2, 3–4, 5–6), draw three lines through the sphere, each from one sign to the other. Three lines in space seldom meet: the place of the key is the point nearest the three of them (least sum of squared distances). `stellar.SignPlace` and `stellar.Place` compute both.
+- **The arrival.** The six signs of a gate, taken two by two in their order (1–2, 3–4, 5–6), draw three lines through the sphere, each from one sign to the other. Three lines in space seldom meet: the place of the key is the point nearest the three of them (least sum of squared distances). The chart ties it by a dotted stroke to the nearest point of each line: it is the middle of those three points. `stellar.SignPlace` and `stellar.Place` compute both.
 - **The origin.** Once the site knows its own key, its own place is found the same way, then pushed out of the sphere in the same direction: the origin is not one of the places the signs lead to. A dashed line joins it to the arrival.
 
 The chart is drawn by the server and stands without a script. With one, it turns slowly, and under the mouse or the finger; it stays still for a visitor who asked their system for less motion.

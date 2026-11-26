@@ -171,7 +171,10 @@ button.quiet:hover { background: var(--panel); }
 .chart .chord { stroke: var(--text); stroke-width: .7; opacity: .55; }
 .chart .trip { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
 .chart text { font: 500 8px var(--mono); letter-spacing: .06em; text-transform: uppercase; fill: var(--text); }
-.chart .sign circle { fill: var(--muted); }
+.chart .sign circle { fill: var(--muted); fill-opacity: .55; }
+.chart .tie { stroke: var(--text); stroke-width: .9; stroke-dasharray: 1 2.2; }
+.chart .foot circle { fill: var(--text); }
+.chart .foot { opacity: 1; }
 .chart .lit circle, .chart .arrival circle { fill: var(--text); }
 .chart .arrival .halo { fill: none; stroke: var(--text); stroke-width: .7; }
 .chart .from circle, .chart .from text { fill: var(--accent); }
