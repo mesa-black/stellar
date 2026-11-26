@@ -6,7 +6,10 @@ and may be ahead of the last entry: what it has gained since is under
 
 ## Unreleased
 
-Nothing yet.
+- **Stellar for Firefox**, in `extension/`: the sky of the key the page in
+  front of you presented to your own browser, whether it changed since
+  last time, and one button to ask stellar.mesa.black whether its server
+  sees the same key. Not published on addons.mozilla.org yet.
 
 ## v0.5.0 — 2026-11-27
 

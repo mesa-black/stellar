@@ -1,0 +1,62 @@
+{
+  "description": {
+    "message": "The key of the page in front of you, drawn as a constellation, as your own machine received it."
+  },
+  "noneNotHttps": {
+    "message": "This page was not loaded over https: there is no key to draw."
+  },
+  "noneReload": {
+    "message": "Reload this page: a key is read while the page arrives, and this one arrived before Stellar was watching."
+  },
+  "labelSite": {
+    "message": "Site"
+  },
+  "labelFingerprint": {
+    "message": "Fingerprint"
+  },
+  "labelCertificate": {
+    "message": "Certificate"
+  },
+  "labelConnection": {
+    "message": "Connection"
+  },
+  "certificate": {
+    "message": "issued by $1, valid until $2"
+  },
+  "untrusted": {
+    "message": "Firefox does not trust this certificate."
+  },
+  "postQuantum": {
+    "message": "post-quantum hybrid"
+  },
+  "notPostQuantum": {
+    "message": "not post-quantum"
+  },
+  "seenNew": {
+    "message": "First time this browser sees this sky here. It will remember it."
+  },
+  "seenSame": {
+    "message": "The same sky as on $1, when this browser first saw it here."
+  },
+  "seenChanged": {
+    "message": "This is not the sky this browser saw here on $1: it was $2. A renewed certificate changes the sky; so does somebody in the way."
+  },
+  "seenAccepted": {
+    "message": "Remembered: $1 is now the sky this browser expects here."
+  },
+  "accept": {
+    "message": "Remember this sky instead"
+  },
+  "checkText": {
+    "message": "This is the key your machine received. Ask stellar.mesa.black whether its server receives the same one: two different keys is what an interception looks like. The name of the site and this fingerprint are sent, only when you press."
+  },
+  "checkGo": {
+    "message": "Compare with what the server sees"
+  },
+  "noneGrant": {
+    "message": "Stellar has not been allowed to read the certificates of the sites you visit yet. It reads nothing else, and sends nothing."
+  },
+  "grant": {
+    "message": "Allow on all sites"
+  }
+}

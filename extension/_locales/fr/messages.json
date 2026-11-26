@@ -1,0 +1,62 @@
+{
+  "description": {
+    "message": "La clé de la page devant vous, dessinée en constellation, telle que votre machine l'a reçue."
+  },
+  "noneNotHttps": {
+    "message": "Cette page n'a pas été chargée en https : il n'y a pas de clé à dessiner."
+  },
+  "noneReload": {
+    "message": "Rechargez cette page : une clé se lit pendant que la page arrive, et celle-ci est arrivée avant que Stellar ne regarde."
+  },
+  "labelSite": {
+    "message": "Site"
+  },
+  "labelFingerprint": {
+    "message": "Empreinte"
+  },
+  "labelCertificate": {
+    "message": "Certificat"
+  },
+  "labelConnection": {
+    "message": "Connexion"
+  },
+  "certificate": {
+    "message": "émis par $1, valide jusqu'au $2"
+  },
+  "untrusted": {
+    "message": "Firefox ne fait pas confiance à ce certificat."
+  },
+  "postQuantum": {
+    "message": "hybride post-quantique"
+  },
+  "notPostQuantum": {
+    "message": "pas post-quantique"
+  },
+  "seenNew": {
+    "message": "Première fois que ce navigateur voit ce ciel ici. Il le retiendra."
+  },
+  "seenSame": {
+    "message": "Le même ciel que le $1, quand ce navigateur l'a vu ici pour la première fois."
+  },
+  "seenChanged": {
+    "message": "Ce n'est pas le ciel que ce navigateur a vu ici le $1 : c'était $2. Un certificat renouvelé change le ciel ; quelqu'un sur le chemin aussi."
+  },
+  "seenAccepted": {
+    "message": "Retenu : $1 est désormais le ciel que ce navigateur attend ici."
+  },
+  "accept": {
+    "message": "Retenir ce ciel à la place"
+  },
+  "checkText": {
+    "message": "Voici la clé que votre machine a reçue. Demandez à stellar.mesa.black si son serveur reçoit la même : deux clés différentes, c'est à quoi ressemble une interception. Le nom du site et cette empreinte sont envoyés, seulement quand vous appuyez."
+  },
+  "checkGo": {
+    "message": "Comparer avec ce que voit le serveur"
+  },
+  "noneGrant": {
+    "message": "Stellar n'a pas encore le droit de lire les certificats des sites que vous visitez. Il ne lit rien d'autre, et n'envoie rien."
+  },
+  "grant": {
+    "message": "Autoriser sur tous les sites"
+  }
+}

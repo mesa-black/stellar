@@ -192,7 +192,7 @@ The site runs at <https://stellar.mesa.black>. A push to `main` is a deployment:
 - **The fingerprint is the authority.** A constellation carries fewer bits to the eye than the digest holds. Someone who can generate many keys can search for one whose constellation resembles yours. Use the drawing to notice a change quickly; compare the full fingerprint when it matters.
 - **The name alone is weak.** It holds about 33 bits, and a matching name can be found by brute force in minutes. Never accept a key on its name only.
 - **The terminal view is a subset.** It shows the main stars and the edges, not the background stars.
-- **The website sees the key from where the server sits.** It shows the key the site presented to the Stellar server, not the one it presented to your browser. Someone intercepting your own connection is not visible from there. To check what your machine receives, run the command line locally: `stellar -host example.com`.
+- **The website sees the key from where the server sits.** It shows the key the site presented to the Stellar server, not the one it presented to your browser. Someone intercepting your own connection is not visible from there. To check what your machine receives, run the command line locally: `stellar -host example.com`. In Firefox, the extension in [`extension/`](extension/) does it for the page in front of you, and asks the website to compare.
 - **`-insecure` shows what the network presents.** Without verification, the key may come from anyone on the path.
 - **No human study has been run.** How reliably people tell two constellations apart is not measured yet.
 

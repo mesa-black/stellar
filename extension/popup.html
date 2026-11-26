@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<main id="none" hidden>
+  <p id="none-text"></p>
+  <button type="button" id="grant" hidden></button>
+</main>
+<main id="shown" hidden>
+  <div id="sky"></div>
+  <h1 id="name"></h1>
+  <p class="status" id="status"></p>
+  <button type="button" class="quiet" id="accept" hidden></button>
+  <dl>
+    <dt id="label-site"></dt><dd id="host"></dd>
+    <dt id="label-print"></dt><dd class="mono" id="print"></dd>
+    <dt id="label-certificate"></dt><dd id="certificate"></dd>
+    <dt id="label-connection"></dt><dd id="connection"></dd>
+  </dl>
+  <form id="check" method="post" action="https://stellar.mesa.black/verify#verify" target="_blank">
+    <input type="hidden" name="host" id="check-host">
+    <input type="hidden" name="key" id="check-key">
+    <input type="hidden" name="lang" id="check-lang">
+    <p id="check-text"></p>
+    <button type="submit" id="check-go"></button>
+  </form>
+</main>
+<script src="stellar.js"></script>
+<script type="module" src="popup.js"></script>
+</body>
+</html>

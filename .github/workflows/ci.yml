@@ -31,6 +31,11 @@ jobs:
         # that moved one star would stop here.
         name: Run the checks in the build stage
         run: docker build --target build .
+      -
+        # The browser extension carries its own port of the mapping, in
+        # JavaScript: the same 32 reference constellations, or it stops here.
+        name: Check the extension's port of the mapping
+        run: node extension/test.js
 
   # ---------------------------------------------------------------- delivery
   # Only for a push to main, and only once the checks pass.

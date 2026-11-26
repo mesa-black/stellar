@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help test image serve stop sky
+.PHONY: help test image serve stop sky extension
 
 # Everything runs in containers: the workstation needs a container engine, not
 # Go. Podman by default; `make serve ENGINE=docker` works the same.
@@ -13,6 +13,11 @@ help: ## Show this help
 
 test: ## Check formatting, vet and run the tests
 	$(ENGINE) build --target build -t $(IMAGE)-build .
+
+extension: ## Package the Firefox extension into bin/stellar-extension.zip
+	@mkdir -p bin && rm -f bin/stellar-extension.zip
+	@cd extension && zip -q -r -X ../bin/stellar-extension.zip . -x test.js -x README.md
+	@printf '  %s\n' "bin/stellar-extension.zip"
 
 image: ## Build the image (runs the tests first)
 	$(ENGINE) build -t $(IMAGE) .

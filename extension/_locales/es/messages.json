@@ -1,0 +1,62 @@
+{
+  "description": {
+    "message": "La clave de la página que tiene delante, dibujada como una constelación, tal como la recibió su máquina."
+  },
+  "noneNotHttps": {
+    "message": "Esta página no se cargó por https: no hay clave que dibujar."
+  },
+  "noneReload": {
+    "message": "Recargue esta página: una clave se lee mientras la página llega, y esta llegó antes de que Stellar mirara."
+  },
+  "labelSite": {
+    "message": "Sitio"
+  },
+  "labelFingerprint": {
+    "message": "Huella"
+  },
+  "labelCertificate": {
+    "message": "Certificado"
+  },
+  "labelConnection": {
+    "message": "Conexión"
+  },
+  "certificate": {
+    "message": "emitido por $1, válido hasta el $2"
+  },
+  "untrusted": {
+    "message": "Firefox no confía en este certificado."
+  },
+  "postQuantum": {
+    "message": "híbrido poscuántico"
+  },
+  "notPostQuantum": {
+    "message": "no poscuántico"
+  },
+  "seenNew": {
+    "message": "Primera vez que este navegador ve este cielo aquí. Lo recordará."
+  },
+  "seenSame": {
+    "message": "El mismo cielo que el $1, cuando este navegador lo vio aquí por primera vez."
+  },
+  "seenChanged": {
+    "message": "Este no es el cielo que este navegador vio aquí el $1: era $2. Un certificado renovado cambia el cielo; alguien en el camino también."
+  },
+  "seenAccepted": {
+    "message": "Recordado: $1 es ahora el cielo que este navegador espera aquí."
+  },
+  "accept": {
+    "message": "Recordar este cielo en su lugar"
+  },
+  "checkText": {
+    "message": "Esta es la clave que recibió su máquina. Pregunte a stellar.mesa.black si su servidor recibe la misma: dos claves distintas es lo que parece una interceptación. El nombre del sitio y esta huella se envían, solo cuando usted pulsa."
+  },
+  "checkGo": {
+    "message": "Comparar con lo que ve el servidor"
+  },
+  "noneGrant": {
+    "message": "Stellar aún no tiene permiso para leer los certificados de los sitios que visita. No lee nada más, y no envía nada."
+  },
+  "grant": {
+    "message": "Permitir en todos los sitios"
+  }
+}

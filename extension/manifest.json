@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Stellar",
+  "version": "0.5.0",
+  "description": "__MSG_description__",
+  "default_locale": "en",
+  "homepage_url": "https://stellar.mesa.black",
+  "icons": { "48": "icons/stellar.svg", "96": "icons/stellar.svg" },
+  "browser_specific_settings": {
+    "gecko": { "id": "stellar@mesa.black", "strict_min_version": "128.0" }
+  },
+  "permissions": ["webRequest", "webRequestBlocking", "storage"],
+  "host_permissions": ["https://*/*"],
+  "background": { "scripts": ["background.js"] },
+  "action": {
+    "default_title": "Stellar",
+    "default_icon": "icons/stellar.svg",
+    "default_popup": "popup.html"
+  }
+}
