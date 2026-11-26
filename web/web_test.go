@@ -782,8 +782,11 @@ func TestStardate(t *testing.T) {
 	s := New(fakeLookup(&calls))
 	s.now = func() time.Time { return time.Date(2026, 11, 26, 10, 0, 0, 0, time.UTC) }
 	body := get(t, s.Handler(), "/?host=example.com&lang=fr").Body.String()
-	if !strings.Contains(body, `<dt>Date stellaire</dt><dd class="mono" title="2026-11-26 10:00 UTC">2026.90</dd>`) {
+	if !strings.Contains(body, `<dt>Date stellaire</dt><dd class="mono stardate" title="2026-11-26 10:00 UTC"><svg`) {
 		t.Error("the page does not give its stardate")
+	}
+	if !strings.Contains(body, `</svg>2026.90</dd>`) {
+		t.Error("the stardate is not 2026.90")
 	}
 }
 

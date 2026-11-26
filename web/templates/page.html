@@ -64,7 +64,7 @@
         <dt>{{.T "fact.fingerprint"}}</dt><dd class="mono">{{.Fingerprint}}</dd>
         {{if .KeyAlgorithm}}<dt>{{.T "fact.certificate"}}</dt><dd>{{.KeyAlgorithm}}{{if .ValidUntil}}{{.T "cert.until" .ValidUntil}}{{end}}{{if .Issuer}}{{.T "cert.issuer" .Issuer}}{{end}}</dd>{{end}}
         {{if .Version}}<dt>{{.T "fact.connection"}}</dt><dd>{{.Version}}{{if .KeyExchange}}{{.T "conn.exchange" .KeyExchange}}{{end}}</dd>{{end}}
-        <dt>{{.T "fact.stardate"}}</dt><dd class="mono" title="{{.StardateOf}}">{{.Stardate}}</dd>
+        <dt>{{.T "fact.stardate"}}</dt><dd class="mono stardate" title="{{.StardateOf}}"><svg viewBox="0 0 31 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"><path d="M2 18 L14 3 L29 18 Z M14 3 L20 18"/><path d="M5.6 13.5 H18.2 M9.2 9 H16.4" stroke-opacity=".55"/></svg>{{.Stardate}}</dd>
       </dl>
       {{if .Version}}
       <p class="quantum" data-pq="{{if .PostQuantum}}yes{{else}}no{{end}}">

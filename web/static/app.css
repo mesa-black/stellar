@@ -198,6 +198,8 @@ dl { margin: 0 0 16px; }
 dt { color: var(--muted); font-size: 13px; margin-top: 12px; }
 dd { margin: 2px 0 0; overflow-wrap: anywhere; }
 .mono { font: 13px/1.5 var(--mono); }
+/* A pyramid before the stardate: two faces and two courses of stone. */
+.stardate svg { width: 1.55em; height: 1em; margin-right: .55em; vertical-align: -.14em; color: var(--muted); }
 
 details { border-top: 1px solid var(--line); padding: 12px 0; font-size: 14px; }
 summary { cursor: pointer; color: var(--accent); }
