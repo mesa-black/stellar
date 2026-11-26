@@ -305,3 +305,77 @@
   if (still.addEventListener) still.addEventListener("change", wake);
   wake();
 })();
+
+// Dialling the gate: the visitor picks six signs of the catalogue in order,
+// and each chevron locks if the sign is the one the key has at that place.
+// The page says which signs are expected; this script only compares.
+(function () {
+  "use strict";
+
+  var dial = document.getElementById("dial");
+  if (!dial) return;
+
+  var SIDE = 8;
+  var expected = dial.dataset.gate.split(",").map(Number);
+  var slots = dial.querySelectorAll(".dial-slots li");
+  var signs = dial.querySelectorAll(".dial-signs button");
+  var status = dial.querySelector(".dial-status");
+  var picked = 0, stopped = false, drawn = false;
+
+  // One picture holds the 64 signs; each button and each place shows its
+  // part of it. Asked for when the catalogue is first opened, not before.
+  function show(el, k) {
+    el.style.backgroundImage = 'url("' + dial.dataset.signs + '")';
+    el.style.backgroundPosition = (k % SIDE) / (SIDE - 1) * 100 + "% " + Math.floor(k / SIDE) / (SIDE - 1) * 100 + "%";
+  }
+
+  function say(state, sentence, n) {
+    status.dataset.state = state;
+    status.textContent = sentence.replace("{n}", n);
+  }
+
+  function again() {
+    picked = 0;
+    stopped = false;
+    Array.prototype.forEach.call(slots, function (slot) {
+      slot.className = "";
+      slot.style.backgroundImage = "";
+    });
+    Array.prototype.forEach.call(signs, function (sign) { sign.disabled = false; });
+    say("", dial.dataset.next, 1);
+  }
+
+  function pick(sign) {
+    if (stopped || picked >= expected.length) return;
+    var k = Number(sign.dataset.k), slot = slots[picked];
+    show(slot, k);
+    sign.disabled = true;
+    if (k !== expected[picked]) {
+      slot.className = "bad";
+      stopped = true;
+      say("bad", dial.dataset.bad, picked + 1);
+      return;
+    }
+    slot.className = "ok";
+    picked++;
+    if (picked === expected.length) {
+      stopped = true;
+      say("ok", dial.dataset.ok, "");
+    } else {
+      say("", dial.dataset.next, picked + 1);
+    }
+  }
+
+  dial.addEventListener("toggle", function () {
+    if (!dial.open || drawn) return;
+    drawn = true;
+    Array.prototype.forEach.call(signs, function (sign) { show(sign, Number(sign.dataset.k)); });
+  });
+  Array.prototype.forEach.call(signs, function (sign) {
+    sign.addEventListener("click", function () { pick(sign); });
+  });
+  document.getElementById("dial-again").addEventListener("click", again);
+
+  again();
+  dial.hidden = false;
+})();

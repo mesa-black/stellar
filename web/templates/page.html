@@ -47,6 +47,18 @@
           {{end}}{{if .Origin}}<li class="origin" title="{{.Origin.Name}}">{{.Origin.SVG}}<span>{{.Origin.Word}}</span><span>{{.T "gate.origin"}}</span></li>{{end}}
         </ol>
         <p class="note">{{if .Origin}}{{.T "gate.text"}}{{else}}{{.T "gate.text.alone"}}{{end}}</p>
+        <details class="dial" id="dial" hidden data-gate="{{.Dial}}" data-signs="{{.Signs}}"
+                 data-next="{{.S "dial.next"}}" data-bad="{{.S "dial.bad"}}" data-ok="{{.S "dial.ok"}}">
+          <summary>{{.T "dial.summary"}}</summary>
+          <p>{{.T "dial.why"}}</p>
+          <p>{{.T "dial.text"}}</p>
+          <ol class="dial-slots"><li></li><li></li><li></li><li></li><li></li><li></li></ol>
+          <p class="dial-status" role="status" aria-live="polite"></p>
+          <div class="dial-signs">
+            {{range .Catalogue}}<button type="button" data-k="{{.K}}" title="{{.Name}}" aria-label="{{.Name}}"></button>{{end}}
+          </div>
+          <button type="button" class="quiet" id="dial-again">{{.T "dial.again"}}</button>
+        </details>
       </div>
       <div class="chart">
         <p class="over">{{.T "chart.label"}}</p>

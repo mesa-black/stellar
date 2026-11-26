@@ -245,7 +245,7 @@ A gate is a second, shorter way to tell a key: six signs in order, the way a gat
 2. **Signs of a key.** A stream of its own: SHAKE256 absorbs the 16 bytes `stellar/gate/v1\0` followed by the 32-byte digest, and integers are drawn from it as above. Draw `draw(64)` until six distinct signs are held, discarding a sign already taken. Their order is the order they were drawn in.
 3. **Origin.** Whoever shows a gate may add a seventh sign: the sky of its own key, drawn whole. It tells where the key was read from, and nothing about the key.
 
-The website shows the gate under the sky, with its own sky as the origin once it knows its public address (`-url`). The command line prints the six signs by the first word of their names. `TestGateVectors` pins the catalogue and the gates, and `testdata/gate-v1.json` lists them for the digests of `testdata/v1.json`.
+The website shows the gate under the sky, with its own sky as the origin once it knows its public address (`-url`). Under it, the gate can be dialled: the page lays out the 64 signs, a visitor who was given six of them by another road picks them in order, and each chevron locks if the sign is the one the key has at that place. The point is that comparing two rows of signs at a glance is done badly, the eye seeing what it expects: placing each sign oneself, and being refused at the first that does not match, is a comparison actually made. It proves no more than the gate does. The command line prints the six signs by the first word of their names. `TestGateVectors` pins the catalogue and the gates, and `testdata/gate-v1.json` lists them for the digests of `testdata/v1.json`.
 
 ### Chart
 

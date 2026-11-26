@@ -736,7 +736,13 @@ func TestSecurityHeaders(t *testing.T) {
 		t.Error("a site that does not know it is served over https asks for it")
 	}
 	s.BaseURL = "https://stellar.example"
-	if got := get(t, s.Handler(), "/").Header().Get("Strict-Transport-Security"); got != "max-age=31536000" {
+	if got := get(t, s.Handler(), "/").Header().Get("Strict-Transport-Security"); got != "" {
+		t.Errorf("asked under another name, the site promises https for it: %q", got)
+	}
+	req := httptest.NewRequest("GET", "https://stellar.example/", nil)
+	rec = httptest.NewRecorder()
+	s.Handler().ServeHTTP(rec, req)
+	if got := rec.Header().Get("Strict-Transport-Security"); got != "max-age=31536000" {
 		t.Errorf("Strict-Transport-Security = %q", got)
 	}
 }
@@ -926,6 +932,45 @@ func TestCompare(t *testing.T) {
 	}
 	if file := get(t, h, "/chart/example.com.svg?with=example.org").Body.String(); !strings.Contains(file, ">EXAMPLE.ORG</text>") || strings.Contains(file, "class=") {
 		t.Error("the chart as a file does not carry the other key")
+	}
+}
+
+// The page lays out the catalogue so that a gate can be dialled: the six
+// signs expected, the 64 to pick from, and their picture, kept for ever.
+func TestDial(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+	body := get(t, h, "/?host=example.com").Body.String()
+	var expected []string
+	for _, k := range stellar.Gate(sha256.Sum256([]byte("example.com"))) {
+		expected = append(expected, strconv.Itoa(k))
+	}
+	if !strings.Contains(body, `data-gate="`+strings.Join(expected, ",")+`"`) {
+		t.Error("the page does not say which six signs it expects")
+	}
+	if got := strings.Count(body, `<button type="button" data-k="`); got != stellar.GateCatalogue {
+		t.Errorf("%d signs to pick from, want %d", got, stellar.GateCatalogue)
+	}
+	if !strings.Contains(body, `title="`+stellar.Sign(63).Name+`"`) {
+		t.Error("the last sign of the catalogue is not named")
+	}
+	sheet := signs()
+	if !strings.Contains(body, `data-signs="/signs/`+sheet.name+`"`) {
+		t.Error("the page does not name the picture of the catalogue")
+	}
+	rec := get(t, h, "/signs/"+sheet.name)
+	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/svg+xml" || !strings.Contains(rec.Header().Get("Cache-Control"), "immutable") {
+		t.Errorf("the picture of the catalogue: status %d, %v", rec.Code, rec.Header())
+	}
+	if got := strings.Count(rec.Body.String(), `viewBox="60 20 880 880"`); got != stellar.GateCatalogue || strings.Contains(rec.Body.String(), "currentColor") {
+		t.Errorf("the picture holds %d signs, want %d, in the ink of the page", got, stellar.GateCatalogue)
+	}
+	if rec := get(t, h, "/signs/signs-000000000000.svg"); rec.Code != 404 {
+		t.Errorf("another name for the picture: status %d", rec.Code)
+	}
+	// Without a key shown, there is nothing to dial.
+	if strings.Contains(get(t, h, "/").Body.String(), `id="dial"`) {
+		t.Error("the empty page offers a gate to dial")
 	}
 }
 

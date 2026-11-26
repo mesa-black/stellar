@@ -159,6 +159,23 @@ button.quiet:hover { background: var(--panel); }
 .gate .origin::before { content: ""; position: absolute; top: -7px; left: 50%; width: 10px; height: 10px; margin-left: -5px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 50% 100%); }
 .gate .note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 
+/* Dialling the gate: six places to fill, and the catalogue to pick from.
+   Every sign is a window on one picture of the 64, placed by the script. */
+.dial { margin-top: 12px; border-top: 0; padding: 0; font-size: 13px; }
+.dial p { margin: 8px 0; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.dial p strong { color: var(--text); }
+.dial-slots { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.dial-slots li { aspect-ratio: 1; border: 1px dashed var(--line); border-radius: var(--radius); background-size: 800% 800%; background-repeat: no-repeat; }
+.dial-slots li.ok { border: 1px solid var(--ok); }
+.dial-slots li.bad { border: 1px solid var(--bad); }
+.dial .dial-status { min-height: 1.5em; color: var(--text); text-align: left; }
+.dial-status[data-state="ok"] { color: var(--ok); }
+.dial-status[data-state="bad"] { color: var(--bad); }
+.dial-signs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; }
+.dial-signs button { aspect-ratio: 1; padding: 0; border: 1px solid var(--line); background-color: transparent; background-size: 800% 800%; background-repeat: no-repeat; }
+.dial-signs button:hover { background-color: var(--panel); border-color: var(--accent); }
+.dial-signs button:disabled { opacity: .22; cursor: default; border-color: var(--line); background-color: transparent; }
+
 /* The chart: the place of the key among the signs, turned by the script. */
 .chart { margin-top: 22px; }
 .chart .over { margin: 0 0 8px; }

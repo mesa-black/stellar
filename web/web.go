@@ -107,6 +107,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /sky/{file}", s.sky)
 	mux.HandleFunc("GET /card/{file}", s.card)
 	mux.HandleFunc("GET /chart/{file}", s.chartFile)
+	mux.HandleFunc("GET /signs/{file}", signsFile)
 	mux.Handle("GET /static/", static())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "ok\n") })
 	return s.headers(compress(mux))
@@ -116,7 +117,10 @@ func (s *Server) Handler() http.Handler {
 // style and load nothing from elsewhere, except the music when there is one,
 // so the policy can be strict. The site asks for no device and opens no
 // window it needs to talk to, and says so. Started with an https address, it
-// tells browsers to come back over https only, for a year.
+// tells browsers to come back over https only, for a year, and tells it
+// only to those who asked for that address: the same program reached under
+// another name, a developer's own machine for one, promises nothing about
+// that name.
 func (s *Server) headers(next http.Handler) http.Handler {
 	csp := "default-src 'none'; img-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 	if u, err := url.Parse(s.Music); err == nil && u.Scheme == "https" && u.Hostname() != "" {
@@ -124,13 +128,16 @@ func (s *Server) headers(next http.Handler) http.Handler {
 		// download over to one of its own servers.
 		csp += "; media-src https://" + u.Hostname() + " https://*." + u.Hostname()
 	}
-	secure := strings.HasPrefix(s.BaseURL, "https://")
+	secure := ""
+	if u, err := url.Parse(s.BaseURL); err == nil && u.Scheme == "https" {
+		secure = u.Host
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("Content-Security-Policy", csp)
 		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
-		if secure {
+		if secure != "" && strings.EqualFold(r.Host, secure) {
 			h.Set("Strict-Transport-Security", "max-age=31536000")
 		}
 		h.Set("X-Content-Type-Options", "nosniff")
@@ -169,6 +176,12 @@ type view struct {
 	With, WithQuery, WithName, WithApart, WithError string
 	WithSame                                        bool
 	with                                            *[32]byte
+	// Dial is the gate of the key as six numbers of the catalogue, Catalogue
+	// its 64 signs and Signs the address of their picture: what the page
+	// needs to let the gate be dialled by hand.
+	Dial      string
+	Catalogue []catalogueSign
+	Signs     string
 	// Chart is the place of the key among the signs, and Trip whether it
 	// also shows the place this site looked from.
 	Chart template.HTML
@@ -586,6 +599,7 @@ func (v *view) show(key stellar.Key) {
 		o := stellar.New(*v.origin)
 		v.Origin = &sign{Name: o.Name, Word: "Chevron " + strconv.Itoa(stellar.GateSigns+1), SVG: template.HTML(o.GlyphSVG())}
 	}
+	v.dial(key.Digest)
 	v.Trip = v.origin != nil && *v.origin != key.Digest
 	v.Chart = chart(key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"), false, v.with, v.With)
 	if v.with != nil {
