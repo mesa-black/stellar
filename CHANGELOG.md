@@ -115,8 +115,8 @@ SHA256: fingerprint, or the certificate a TLS server presents. For a
 server it also says what the handshake shows, the post-quantum key
 exchange included. stellar serve is the website of stellar.mesa.black.
 
-The mapping from key to sky is version 1, specified in the README and
-pinned by testdata/v1.json.
+The mapping from key to sky is version 1, specified in docs/spec.md (in
+the README at the time) and pinned by testdata/v1.json.
 -----BEGIN PGP SIGNATURE-----
 
 iJEEABYKADkWIQRUIAmJF/MMEaf51e/ZPwUpucmaOAUCav/MkRsUgAAAAAAEAA5t
