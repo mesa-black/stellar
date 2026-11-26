@@ -904,13 +904,13 @@ func TestCompare(t *testing.T) {
 	}
 	body = get(t, h, "/?host=example.com&with=Example.ORG").Body.String()
 	a, b := sha256.Sum256([]byte("example.com")), sha256.Sum256([]byte("example.org"))
-	want := strconv.FormatFloat(apart(a, b), 'f', 2, 64)
+	want := strconv.FormatFloat(stellar.Apart(a, b), 'f', 2, 64)
 	for _, part := range []string{`class="other"`, `class="span"`, ">example.org</text>", stellar.New(b).Name, want + " radius", `with=example.org`} {
 		if !strings.Contains(body, part) {
 			t.Errorf("the comparison lacks %q", part)
 		}
 	}
-	if d := apart(a, b); d <= 0 || d > 2 {
+	if d := stellar.Apart(a, b); d <= 0 || d > 2 {
 		t.Errorf("the two places are %v apart", d)
 	}
 	// The same host again is the same key: one place, and the page says so.

@@ -77,6 +77,8 @@ Key:         test@stellar (ssh-ed25519)
 | `-size 640` | Width and height of the picture, in pixels. |
 | `-host name[:port]` | Fetch the key from a TLS server. The port defaults to 443. |
 | `-insecure` | With `-host`, skip certificate verification. |
+| `-with key` | Compare with another key: a file, a `SHA256:` fingerprint, or a TLS server written `host:name[:port]`. Prints the other key's sky on a `With:` line and, on `Apart:`, how far the two stand from each other in the sphere of the signs, in radii (0 for the same key). |
+| `-chart file.svg` | Write the chart of the key to a file: its gate in the sphere of the signs and the place it leads to, with the key given to `-with` beside it. |
 
 Colours are disabled when the output is not a terminal or when `NO_COLOR` is set.
 

@@ -591,7 +591,7 @@ func (v *view) show(key stellar.Key) {
 	if v.with != nil {
 		v.WithName = stellar.New(*v.with).Name
 		v.WithSame = *v.with == key.Digest
-		v.WithApart = strconv.FormatFloat(apart(key.Digest, *v.with), 'f', 2, 64)
+		v.WithApart = strconv.FormatFloat(stellar.Apart(key.Digest, *v.with), 'f', 2, 64)
 		if v.Lang != "en" {
 			// French and Spanish write the decimal mark as a comma.
 			v.WithApart = strings.Replace(v.WithApart, ".", ",", 1)

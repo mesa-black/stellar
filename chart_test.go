@@ -55,3 +55,13 @@ func TestPlace(t *testing.T) {
 		}
 	}
 }
+
+func TestApart(t *testing.T) {
+	a, b := sha256.Sum256([]byte("a")), sha256.Sum256([]byte("b"))
+	if d := Apart(a, a); d != 0 {
+		t.Errorf("a key is %v from itself", d)
+	}
+	if d := Apart(a, b); d <= 0 || d > 2 || d != Apart(b, a) {
+		t.Errorf("two keys are %v apart one way and %v the other", d, Apart(b, a))
+	}
+}

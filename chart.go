@@ -20,6 +20,15 @@ func SignPlace(k int) [3]float64 {
 	return [3]float64{r * math.Cos(phi), y, r * math.Sin(phi)}
 }
 
+// Apart returns how far the places of two digests are from each other, in
+// radii of the sphere of the signs: between 0 and 2. Like the places, it is
+// a picture of the two gates and says nothing more than they do: two keys
+// that stand close are no more alike than two that stand far.
+func Apart(a, b [32]byte) float64 {
+	p, q := Place(a), Place(b)
+	return math.Sqrt((p[0]-q[0])*(p[0]-q[0]) + (p[1]-q[1])*(p[1]-q[1]) + (p[2]-q[2])*(p[2]-q[2]))
+}
+
 // Place returns the place of a digest: the point that minimises the sum of
 // its squared distances to the three lines of its gate, each line running
 // from one sign to the other and no further. It lies within the sphere of

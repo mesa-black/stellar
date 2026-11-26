@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/mesa-black/stellar"
+	"github.com/mesa-black/stellar/web"
 )
 
 const usage = `Usage:
@@ -19,6 +20,8 @@ const usage = `Usage:
   stellar [flags] -                the same, read from standard input
   stellar [flags] SHA256:<base64>  a fingerprint, as printed by ssh-keygen -l
   stellar [flags] -host <name>     the certificate a TLS server presents
+  stellar -with <key> ...          the same, and how far another key stands from it
+  stellar -chart file.svg ...      the same, and its chart written to a file
   stellar serve [-addr host:port]  the website
   stellar announce -zone <zone> <host>...
                                    publish the hosts' keys as DANE records (Gandi)
@@ -52,6 +55,8 @@ func run() error {
 	insecure := flag.Bool("insecure", false, "with -host, do not verify the certificate chain")
 	out := flag.String("o", "", "write an SVG to `file`, or a PNG if it ends in .png (- for SVG on standard output)")
 	size := flag.Int("size", 640, "width and height of the picture, in pixels")
+	with := flag.String("with", "", "another `key` to compare: a file, a SHA256: fingerprint, or a TLS server as host:name[:port]")
+	chart := flag.String("chart", "", "write the chart of the key to `file`, an SVG: its gate in the sphere of the signs")
 	flag.Usage = func() {
 		fmt.Fprint(flag.CommandLine.Output(), usage)
 		flag.PrintDefaults()
@@ -94,6 +99,35 @@ func run() error {
 	// draws as the arrival on its chart.
 	place := stellar.Place(key.Digest)
 	fmt.Printf("Place:       %+.3f %+.3f %+.3f\n", place[0], place[1], place[2])
+	// Another key, placed beside this one: its sky, and how far apart the
+	// two stand in the sphere of the signs.
+	var other *stellar.Key
+	if *with != "" {
+		k, err := another(*with, *insecure)
+		if err != nil {
+			return fmt.Errorf("-with: %w", err)
+		}
+		other = &k
+		fmt.Printf("With:        %s, %s\n", stellar.New(k.Digest).Name, k.Fingerprint())
+		if k.Digest == key.Digest {
+			fmt.Println("Apart:       0, the same key")
+		} else {
+			fmt.Printf("Apart:       %.2f radius, another key\n", stellar.Apart(key.Digest, k.Digest))
+		}
+	}
+	if *chart != "" {
+		var digest *[32]byte
+		label := ""
+		if other != nil {
+			// Named by its sky: a fingerprint is too long to stand on a
+			// drawing, and a file name says nothing to who receives it.
+			digest, label = &other.Digest, stellar.New(other.Digest).Name
+		}
+		if err := os.WriteFile(*chart, []byte(web.Chart(key.Digest, digest, label)), 0o644); err != nil {
+			return err
+		}
+		fmt.Printf("Chart:       %s\n", *chart)
+	}
 	if key.Label != "" {
 		fmt.Printf("Key:         %s (%s)\n", key.Label, key.Kind)
 	} else {
@@ -187,6 +221,28 @@ func load(host string, insecure bool, args []string) (stellar.Key, *stellar.Host
 	}
 	key, err := stellar.Parse(data)
 	return key, nil, err
+}
+
+// another returns the key named by -with: a TLS server when it is written
+// host:name, and otherwise what the command line takes as its argument, a
+// file or a fingerprint.
+func another(spec string, insecure bool) (stellar.Key, error) {
+	if host, ok := strings.CutPrefix(spec, "host:"); ok {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		seen, err := stellar.InspectHost(ctx, nil, host, insecure)
+		return seen.Key, err
+	}
+	data, err := os.ReadFile(spec)
+	if os.IsNotExist(err) {
+		if key, ferr := stellar.ParseFingerprint(spec); ferr == nil {
+			return key, nil
+		}
+	}
+	if err != nil {
+		return stellar.Key{}, err
+	}
+	return stellar.Parse(data)
 }
 
 // useColor reports whether standard output is a terminal that wants colour.

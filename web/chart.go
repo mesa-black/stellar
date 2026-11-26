@@ -65,11 +65,12 @@ var chartLook = map[string]string{
 	"span":    `fill="none" stroke="#9be3b4" stroke-width="1" stroke-dasharray="3 3" stroke-linecap="round"`,
 }
 
-// apart returns how far the places of two keys are from each other, in radii
-// of the sphere of the signs: between 0 and 2.
-func apart(a, b [32]byte) float64 {
-	p, q := stellar.Place(a), stellar.Place(b)
-	return math.Sqrt((p[0]-q[0])*(p[0]-q[0]) + (p[1]-q[1])*(p[1]-q[1]) + (p[2]-q[2])*(p[2]-q[2]))
+// Chart returns the chart of a key as a standalone SVG document, for a
+// program that draws it outside the website: the sphere of the signs, the
+// gate of the key and where it leads. With another key to compare, the
+// place of that key is drawn too, under its label.
+func Chart(digest [32]byte, other *[32]byte, otherLabel string) string {
+	return string(chart(digest, nil, "arrival", "", true, other, otherLabel))
 }
 
 // nearest returns the point of the line from a to b nearest to p.
