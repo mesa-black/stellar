@@ -1,0 +1,12 @@
+# Stellar has no Go dependency outside the standard library. What does move
+# under it: the actions the pipeline runs, and the image that compiles it.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

@@ -1,0 +1,10 @@
+# Text is stored with LF line endings, whatever the machine that commits it:
+# the reference vectors and the embedded files are compared byte for byte.
+* text=auto eol=lf
+
+*.woff2 binary
+*.png   binary
+
+# Generated or reference data: not what a reviewer reads line by line.
+testdata/*.json linguist-generated
+docs/*.svg      linguist-generated

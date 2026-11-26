@@ -269,6 +269,10 @@ fmt.Print(c.Text(true))               // terminal
 svg := c.SVG(640, key.Fingerprint())  // SVG document
 ```
 
+## Contributing
+
+The rules that keep Stellar what it is are in [CONTRIBUTING.md](CONTRIBUTING.md), what each release brought in [CHANGELOG.md](CHANGELOG.md), and how to report a flaw, in private, in [SECURITY.md](SECURITY.md).
+
 ## License
 
 Stellar is released under the [MIT License](LICENSE).
