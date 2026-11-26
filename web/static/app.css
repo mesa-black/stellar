@@ -222,7 +222,7 @@ pre { margin: 0; padding: 12px; background: var(--panel); border-radius: var(--r
 .about li { margin: 6px 0; }
 /* Justified, with hyphenation so that the narrow column of a phone does not
    open rivers between the words. */
-.about p, .about li, details p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.about p, .about li, details p, .gate .note, .chart .note { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
 /* The explanations, a size under the rest: they are read once. */
 .about .words { font-size: 14.5px; }
 .about .words > :first-child { margin-top: 0; }
