@@ -844,6 +844,17 @@ func TestChart(t *testing.T) {
 	if p := away(origin); math.Abs(math.Sqrt(p[0]*p[0]+p[1]*p[1]+p[2]*p[2])-chartAway) > 1e-9 {
 		t.Errorf("the origin stands at %v, not outside the sphere", p)
 	}
+	// Taken away, the chart carries its own colours and no class.
+	file := get(t, s.Handler(), "/chart/example.com.svg")
+	taken := file.Body.String()
+	if file.Code != 200 || file.Header().Get("Content-Type") != "image/svg+xml" || strings.Contains(taken, "class=") ||
+		!strings.Contains(taken, `stroke-dasharray="3 3"`) || !strings.Contains(taken, ">ORIGIN<") ||
+		!strings.Contains(taken, strings.ToUpper(stellar.New(sha256.Sum256([]byte("example.com"))).Name)) {
+		t.Errorf("the chart as a file: status %d, %.300s", file.Code, taken)
+	}
+	if !strings.Contains(body, `href="/chart/example.com.svg"`) {
+		t.Error("the page does not offer the chart as a file")
+	}
 	// Looking at itself, the site is both ends: there is no trip to draw.
 	body = get(t, s.Handler(), "/?host=stellar.example").Body.String()
 	if strings.Contains(body, `class="from"`) || strings.Contains(body, `class="trip"`) {

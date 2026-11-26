@@ -90,6 +90,10 @@ func run() error {
 		signs = append(signs, word)
 	}
 	fmt.Printf("Gate:        %s\n", strings.Join(signs, " · "))
+	// Where the gate leads, in the sphere of the signs: what the website
+	// draws as the arrival on its chart.
+	place := stellar.Place(key.Digest)
+	fmt.Printf("Place:       %+.3f %+.3f %+.3f\n", place[0], place[1], place[2])
 	if key.Label != "" {
 		fmt.Printf("Key:         %s (%s)\n", key.Label, key.Kind)
 	} else {

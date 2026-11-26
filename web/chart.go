@@ -47,6 +47,22 @@ func project(p [3]float64, yaw float64) (x, y, near float64) {
 	return px * scale, -py * scale, pz
 }
 
+// chartLook is what the stylesheet says of each part of the chart, written
+// as attributes for a chart that travels without it.
+var chartLook = map[string]string{
+	"rim":     `fill="none" stroke="#2a3263" stroke-width=".8"`,
+	"ring":    `fill="none" stroke="#2a3263" stroke-width=".5" opacity=".6"`,
+	"chord":   `fill="none" stroke="#e8ecff" stroke-width=".7" opacity=".55" stroke-linecap="round"`,
+	"tie":     `fill="none" stroke="#e8ecff" stroke-width=".9" stroke-dasharray="1 2.2" stroke-linecap="round"`,
+	"trip":    `fill="none" stroke="#8fb4ff" stroke-width="1" stroke-dasharray="3 3" stroke-linecap="round"`,
+	"sign":    `fill="#a3acd6" fill-opacity=".55"`,
+	"lit":     `fill="#e8ecff"`,
+	"foot":    `fill="#e8ecff"`,
+	"arrival": `fill="#e8ecff"`,
+	"from":    `fill="#8fb4ff"`,
+	"halo":    `fill="none" stroke="#e8ecff" stroke-width=".7"`,
+}
+
 // nearest returns the point of the line from a to b nearest to p.
 func nearest(p, a, b [3]float64) [3]float64 {
 	var along, length float64
@@ -62,7 +78,20 @@ func nearest(p, a, b [3]float64) [3]float64 {
 // signs, the six of its gate joined two by two, the place they lead to, and,
 // when the site knows its own key, the place it looked from, outside the
 // sphere.
-func chart(digest [32]byte, origin *[32]byte, arrival, from string) template.HTML {
+//
+// On the page it is styled by the stylesheet and turned by the script. Taken
+// away as a file (alone), it carries its own colours, its night and its
+// name, and stays as it was drawn.
+func chart(digest [32]byte, origin *[32]byte, arrival, from string, alone bool) template.HTML {
+	look := func(class string) string {
+		if !alone {
+			return `class="` + class + `"`
+		}
+		return chartLook[class]
+	}
+	if alone {
+		arrival, from = strings.ToUpper(arrival), strings.ToUpper(from)
+	}
 	// Seen first from where the origin stands clear of the sphere, to its
 	// right, rather than in front of it or behind.
 	yaw := chartYaw
@@ -73,9 +102,19 @@ func chart(digest [32]byte, origin *[32]byte, arrival, from string) template.HTM
 		yaw = math.Atan2(start[2], start[0])
 	}
 	var b strings.Builder
-	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-160 -160 320 320" role="img" aria-label="%s" data-yaw="%g" data-pitch="%g">`,
-		html.EscapeString(arrival), yaw, chartPitch)
-	fmt.Fprintf(&b, `<circle class="rim" r="%.1f"/>`, chartRadius*chartEye/math.Sqrt(chartEye*chartEye-1))
+	if alone {
+		name := stellar.New(digest).Name
+		fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-160 -160 320 320" width="1200" height="1200" role="img" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8" font-weight="500" letter-spacing=".5">`)
+		fmt.Fprintf(&b, `<title>%s</title>`, html.EscapeString(name))
+		b.WriteString(`<defs><radialGradient id="night" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#0d1230"/><stop offset="1" stop-color="#05060f"/></radialGradient></defs>`)
+		b.WriteString(`<rect x="-160" y="-160" width="320" height="320" fill="url(#night)"/>`)
+		fmt.Fprintf(&b, `<text y="146" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="10" font-weight="400" letter-spacing="3" fill="#e8ecff">%s</text>`,
+			html.EscapeString(strings.ToUpper(name)))
+	} else {
+		fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-160 -160 320 320" role="img" aria-label="%s" data-yaw="%g" data-pitch="%g">`,
+			html.EscapeString(arrival), yaw, chartPitch)
+	}
+	fmt.Fprintf(&b, `<circle %s r="%.1f"/>`, look("rim"), chartRadius*chartEye/math.Sqrt(chartEye*chartEye-1))
 
 	line := func(class string, pts ...[3]float64) {
 		var data, drawn []string
@@ -84,12 +123,17 @@ func chart(digest [32]byte, origin *[32]byte, arrival, from string) template.HTM
 			data = append(data, fmt.Sprintf("%.4f %.4f %.4f", p[0], p[1], p[2]))
 			drawn = append(drawn, fmt.Sprintf("%.1f,%.1f", x, y))
 		}
-		fmt.Fprintf(&b, `<polyline class="%s" data-pts="%s" points="%s"/>`, class, strings.Join(data, ";"), strings.Join(drawn, " "))
+		fmt.Fprintf(&b, `<polyline %s data-pts="%s" points="%s"/>`, look(class), strings.Join(data, ";"), strings.Join(drawn, " "))
 	}
 	point := func(class string, p [3]float64, inside string) {
 		x, y, near := project(p, yaw)
-		fmt.Fprintf(&b, `<g class="%s" data-p="%.4f %.4f %.4f" transform="translate(%.1f %.1f)" opacity="%.2f">%s</g>`,
-			class, p[0], p[1], p[2], x, y, 0.35+0.65*(near+1)/2, inside)
+		depth := 0.35 + 0.65*(near+1)/2
+		if alone && (class == "arrival" || class == "from" || class == "foot") {
+			// The stylesheet keeps these at full light; so does the file.
+			depth = 1
+		}
+		fmt.Fprintf(&b, `<g %s data-p="%.4f %.4f %.4f" transform="translate(%.1f %.1f)" opacity="%.2f">%s</g>`,
+			look(class), p[0], p[1], p[2], x, y, depth, inside)
 	}
 
 	// Three circles of the sphere, to give it its roundness.
@@ -138,7 +182,7 @@ func chart(digest [32]byte, origin *[32]byte, arrival, from string) template.HTM
 	if trip {
 		point("from", start, fmt.Sprintf(`<circle r="3.4"/><text y="13" text-anchor="middle">%s</text>`, html.EscapeString(from)))
 	}
-	point("arrival", here, fmt.Sprintf(`<circle r="3.4"/><circle class="halo" r="8"/><text x="12" y="3.5">%s</text>`, html.EscapeString(arrival)))
+	point("arrival", here, fmt.Sprintf(`<circle r="3.4"/><circle %s r="8"/><text x="12" y="3.5">%s</text>`, look("halo"), html.EscapeString(arrival)))
 	b.WriteString(`</svg>`)
 	return template.HTML(b.String())
 }

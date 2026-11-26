@@ -253,7 +253,7 @@ Under the gate, the website draws where the key stands in space. This is a pictu
 - **The arrival.** The six signs of a gate, taken two by two in their order (1–2, 3–4, 5–6), draw three lines through the sphere, each from one sign to the other. Three lines in space seldom meet: the place of the key is the point nearest the three of them (least sum of squared distances). The chart ties it by a dotted stroke to the nearest point of each line: it is the middle of those three points. `stellar.SignPlace` and `stellar.Place` compute both.
 - **The origin.** Once the site knows its own key, its own place is found the same way, then pushed out of the sphere in the same direction: the origin is not one of the places the signs lead to. A dashed line joins it to the arrival.
 
-The chart is drawn by the server and stands without a script. With one, it turns slowly, and under the mouse or the finger; it stays still for a visitor who asked their system for less motion.
+The chart is drawn by the server and stands without a script. It can be taken away as a file, `/chart/example.com.svg`, which carries its own colours, and `stellar` prints the place as `Place:`, three coordinates within the sphere. With one, it turns slowly, and under the mouse or the finger; it stays still for a visitor who asked their system for less motion.
 
 **Stardate.** Among the facts of a result, the page gives the moment it was drawn the way a ship's log would: the year, then the share of that year already gone, to two decimals (`2026.90` is nine tenths into 2026). It is a wink, and nothing is computed from it.
 

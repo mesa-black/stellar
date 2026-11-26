@@ -52,6 +52,8 @@
         <p class="over">{{.T "chart.label"}}</p>
         {{.Chart}}
         <p class="note">{{if .Trip}}{{.T "chart.text"}}{{else}}{{.T "chart.text.alone"}}{{end}}</p>
+        {{if .Host}}<p class="share take"><span class="over">{{.T "chart.download"}}</span>
+          <a class="button" href="/chart/{{.Host}}.svg{{if .LangParam}}?lang={{.LangParam}}{{end}}" download="{{.Host}}-chart.svg">SVG</a></p>{{end}}
       </div>
     </div>
     <div class="facts">

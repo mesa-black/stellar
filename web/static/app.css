@@ -163,6 +163,7 @@ button.quiet:hover { background: var(--panel); }
 .chart { margin-top: 22px; }
 .chart .over { margin: 0 0 8px; }
 .chart .note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.chart .take { margin: 12px 0 0; }
 .chart svg { background: radial-gradient(circle at 50% 45%, var(--dusk), var(--night) 75%); cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .chart svg.held { cursor: grabbing; }
 .chart .rim { fill: none; stroke: var(--line); stroke-width: .8; }

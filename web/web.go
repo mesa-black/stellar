@@ -106,6 +106,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /key", s.key)
 	mux.HandleFunc("GET /sky/{file}", s.sky)
 	mux.HandleFunc("GET /card/{file}", s.card)
+	mux.HandleFunc("GET /chart/{file}", s.chartFile)
 	mux.Handle("GET /static/", static())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "ok\n") })
 	return s.headers(compress(mux))
@@ -424,6 +425,27 @@ func (s *Server) sky(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, stellar.New(key.Digest).SVG(size, key.Fingerprint()))
 }
 
+// chartFile serves the chart of a host as a file to keep,
+// /chart/example.com.svg: the chart of the page, seen from where the page
+// first shows it, with its own colours and the name of the sky under it.
+func (s *Server) chartFile(w http.ResponseWriter, r *http.Request) {
+	name, ok := strings.CutSuffix(r.PathValue("file"), ".svg")
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	v := s.newView(r, "")
+	_, seen, err := s.resolve(r.Context(), name)
+	if err != nil {
+		key, status := explain(err)
+		http.Error(w, message("en", key), status)
+		return
+	}
+	w.Header().Set("Content-Type", "image/svg+xml")
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	io.WriteString(w, string(chart(seen.Key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"), true)))
+}
+
 // card serves the picture a messaging application shows under a link to a
 // host's page: /card/example.com.png. Drawing one takes some forty
 // milliseconds, so each is drawn once per key and kept.
@@ -539,7 +561,7 @@ func (v *view) show(key stellar.Key) {
 		v.Origin = &sign{Name: o.Name, Word: "Chevron " + strconv.Itoa(stellar.GateSigns+1), SVG: template.HTML(o.GlyphSVG())}
 	}
 	v.Trip = v.origin != nil && *v.origin != key.Digest
-	v.Chart = chart(key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"))
+	v.Chart = chart(key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"), false)
 	v.Name = c.Name
 	v.Fingerprint = key.Fingerprint()
 	v.Kind = key.Kind
