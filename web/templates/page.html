@@ -48,12 +48,14 @@
         </ol>
         <p class="note">{{if .Origin}}{{.T "gate.text"}}{{else}}{{.T "gate.text.alone"}}{{end}}</p>
         <details class="dial" id="dial" hidden data-gate="{{.Dial}}" data-signs="{{.Signs}}"
-                 data-next="{{.S "dial.next"}}" data-bad="{{.S "dial.bad"}}" data-ok="{{.S "dial.ok"}}">
+                 data-next="{{.S "dial.next"}}" data-bad="{{.S "dial.bad"}}" data-ok="{{.S "dial.ok"}}" data-helped="{{.S "dial.ok.helped"}}"
+                 data-hint-row="{{.S "dial.hint.row"}}" data-hint-name="{{.S "dial.hint.name"}}" data-hint-sign="{{.S "dial.hint.sign"}}">
           <summary>{{.T "dial.summary"}}</summary>
           <p>{{.T "dial.why"}}</p>
           <p>{{.T "dial.text"}}</p>
           <ol class="dial-slots"><li></li><li></li><li></li><li></li><li></li><li></li></ol>
           <p class="dial-status" role="status" aria-live="polite"></p>
+          <p class="dial-lead" aria-live="polite"></p>
           <div class="dial-signs">
             {{range .Catalogue}}<button type="button" data-k="{{.K}}" title="{{.Name}}" aria-label="{{.Name}}"></button>{{end}}
           </div>

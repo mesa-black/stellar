@@ -308,6 +308,8 @@
 
 // Dialling the gate: the visitor picks six signs of the catalogue in order,
 // and each chevron locks if the sign is the one the key has at that place.
+// A sign that does not lock can be tried again, and each miss gives a lead:
+// the row of the right sign, then how its name begins, then the sign itself.
 // The page says which signs are expected; this script only compares.
 (function () {
   "use strict";
@@ -316,16 +318,20 @@
   if (!dial) return;
 
   var SIDE = 8;
-  var expected = dial.dataset.gate.split(",").map(Number);
+  var words = dial.dataset;
+  var expected = words.gate.split(",").map(Number);
   var slots = dial.querySelectorAll(".dial-slots li");
-  var signs = dial.querySelectorAll(".dial-signs button");
+  var signs = Array.prototype.slice.call(dial.querySelectorAll(".dial-signs button"));
   var status = dial.querySelector(".dial-status");
-  var picked = 0, stopped = false, drawn = false;
+  var lead = dial.querySelector(".dial-lead");
+  // picked: chevrons locked so far. misses: wrong signs at the chevron being
+  // dialled. missed: wrong signs since the start.
+  var picked = 0, misses = 0, missed = 0, drawn = false;
 
   // One picture holds the 64 signs; each button and each place shows its
   // part of it. Asked for when the catalogue is first opened, not before.
   function show(el, k) {
-    el.style.backgroundImage = 'url("' + dial.dataset.signs + '")';
+    el.style.backgroundImage = 'url("' + words.signs + '")';
     el.style.backgroundPosition = (k % SIDE) / (SIDE - 1) * 100 + "% " + Math.floor(k / SIDE) / (SIDE - 1) * 100 + "%";
   }
 
@@ -334,44 +340,80 @@
     status.textContent = sentence.replace("{n}", n);
   }
 
+  function unlead() {
+    signs.forEach(function (sign) { sign.classList.remove("lead"); });
+    lead.textContent = "";
+  }
+
+  // The lead after a miss: wider first, then closer.
+  function hint() {
+    var right = expected[picked];
+    unlead();
+    if (misses === 1) {
+      signs.forEach(function (sign) {
+        if (Math.floor(Number(sign.dataset.k) / SIDE) === Math.floor(right / SIDE)) sign.classList.add("lead");
+      });
+      lead.textContent = words.hintRow;
+    } else if (misses === 2) {
+      lead.textContent = words.hintName.replace("{s}", signs[right].title.slice(0, 2));
+    } else {
+      signs[right].classList.add("lead");
+      lead.textContent = words.hintSign;
+    }
+  }
+
+  // The signs already locked stay taken: a gate never has a sign twice.
+  function free() {
+    signs.forEach(function (sign) {
+      sign.disabled = expected.slice(0, picked).indexOf(Number(sign.dataset.k)) >= 0;
+    });
+  }
+
   function again() {
-    picked = 0;
-    stopped = false;
+    picked = misses = missed = 0;
     Array.prototype.forEach.call(slots, function (slot) {
       slot.className = "";
       slot.style.backgroundImage = "";
     });
-    Array.prototype.forEach.call(signs, function (sign) { sign.disabled = false; });
-    say("", dial.dataset.next, 1);
+    free();
+    unlead();
+    say("", words.next, 1);
   }
 
   function pick(sign) {
-    if (stopped || picked >= expected.length) return;
+    if (picked >= expected.length) return;
     var k = Number(sign.dataset.k), slot = slots[picked];
     show(slot, k);
     sign.disabled = true;
     if (k !== expected[picked]) {
+      // The place shows the sign that did not lock until the next one.
       slot.className = "bad";
-      stopped = true;
-      say("bad", dial.dataset.bad, picked + 1);
+      misses++;
+      missed++;
+      say("bad", words.bad, picked + 1);
+      hint();
       return;
     }
     slot.className = "ok";
     picked++;
-    if (picked === expected.length) {
-      stopped = true;
-      say("ok", dial.dataset.ok, "");
+    misses = 0;
+    free();
+    unlead();
+    if (picked < expected.length) {
+      say("", words.next, picked + 1);
+    } else if (missed === 0) {
+      say("ok", words.ok, "");
     } else {
-      say("", dial.dataset.next, picked + 1);
+      say("helped", words.helped, missed);
     }
   }
 
   dial.addEventListener("toggle", function () {
     if (!dial.open || drawn) return;
     drawn = true;
-    Array.prototype.forEach.call(signs, function (sign) { show(sign, Number(sign.dataset.k)); });
+    signs.forEach(function (sign) { show(sign, Number(sign.dataset.k)); });
   });
-  Array.prototype.forEach.call(signs, function (sign) {
+  signs.forEach(function (sign) {
     sign.addEventListener("click", function () { pick(sign); });
   });
   document.getElementById("dial-again").addEventListener("click", again);
