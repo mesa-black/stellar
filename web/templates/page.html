@@ -62,26 +62,6 @@
           <button type="button" class="quiet" id="dial-again">{{.T "dial.again"}}</button>
         </details>
       </div>
-      <div class="chart">
-        <p class="over">{{.T "chart.label"}}</p>
-        {{.Chart}}
-        <p class="note">{{if .Trip}}{{.T "chart.text"}}{{else}}{{.T "chart.text.alone"}}{{end}}</p>
-        {{if .Host}}
-        {{if .With}}<p class="note with">{{if .WithSame}}{{.T "chart.with.same" .With}}{{else}}{{.T "chart.with.far" .With .WithName .WithApart}}{{end}}</p>{{end}}
-        {{if .WithError}}<p class="note with bad">{{.WithQuery}} : {{.WithError}}</p>{{end}}
-        <form class="compare" action="/" method="get">
-          <label for="with">{{.T "chart.with.label"}}</label>
-          <div class="row">
-            <input type="hidden" name="host" value="{{.Host}}">
-            <input id="with" name="with" type="text" value="{{.WithQuery}}" placeholder="example.org"
-                   autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" required>
-            {{if .LangParam}}<input type="hidden" name="lang" value="{{.LangParam}}">{{end}}
-            <button type="submit" class="quiet">{{.T "chart.with.submit"}}</button>
-          </div>
-        </form>
-        <p class="share take"><span class="over">{{.T "chart.download"}}</span>
-          <a class="button" href="/chart/{{.Host}}.svg{{if .With}}?with={{.With}}{{if .LangParam}}&amp;lang={{.LangParam}}{{end}}{{else if .LangParam}}?lang={{.LangParam}}{{end}}" download="{{.Host}}-chart.svg">SVG</a></p>{{end}}
-      </div>
     </div>
     <div class="facts">
       <h1>{{.Name}}</h1>
@@ -129,6 +109,28 @@
       {{end}}
     </div>
   </article>
+  <section class="chart" id="chart">
+    <div class="chart-map">{{.Chart}}</div>
+    <div class="chart-words">
+      <p class="over">{{.T "chart.label"}}</p>
+      <p class="note">{{if .Trip}}{{.T "chart.text"}}{{else}}{{.T "chart.text.alone"}}{{end}}</p>
+      {{if .Host}}
+      {{if .With}}<p class="note with">{{if .WithSame}}{{.T "chart.with.same" .With}}{{else}}{{.T "chart.with.far" .With .WithName .WithApart}}{{end}}</p>{{end}}
+      {{if .WithError}}<p class="note with bad">{{.WithQuery}} : {{.WithError}}</p>{{end}}
+      <form class="compare" action="/#chart" method="get">
+        <label for="with">{{.T "chart.with.label"}}</label>
+        <div class="row">
+          <input type="hidden" name="host" value="{{.Host}}">
+          <input id="with" name="with" type="text" value="{{.WithQuery}}" placeholder="example.org"
+                 autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="url" required>
+          {{if .LangParam}}<input type="hidden" name="lang" value="{{.LangParam}}">{{end}}
+          <button type="submit" class="quiet">{{.T "chart.with.submit"}}</button>
+        </div>
+      </form>
+      <p class="share take"><span class="over">{{.T "chart.download"}}</span>
+        <a class="button" href="/chart/{{.Host}}.svg{{if .With}}?with={{.With}}{{if .LangParam}}&amp;lang={{.LangParam}}{{end}}{{else if .LangParam}}?lang={{.LangParam}}{{end}}" download="{{.Host}}-chart.svg">SVG</a></p>{{end}}
+    </div>
+  </section>
   {{if .LogsState}}
   <section class="logs" id="logs">
     <h2>{{.T "logs.title"}}</h2>

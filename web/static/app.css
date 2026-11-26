@@ -179,18 +179,29 @@ button.quiet:hover { background: var(--panel); }
 .dial .dial-lead { min-height: 1.5em; margin-top: 0; color: var(--warn); text-align: left; }
 .dial-signs button:disabled { opacity: .22; cursor: default; border-color: var(--line); background-color: transparent; }
 
-/* The chart: the place of the key among the signs, turned by the script. */
-.chart { margin-top: 22px; }
-.chart .over { margin: 0 0 8px; }
-.chart .note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
-.chart .take { margin: 12px 0 0; }
+/* The chart: the place of the key among the signs, turned by the script. A
+   section of its own under the result, the drawing beside its words, so
+   that the column of the sky stops at the gate. */
+.chart {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: center;
+  margin: 0 0 32px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+.chart .over { margin: 0 0 10px; }
+.chart .note { margin: 0 0 12px; color: var(--muted); font-size: 14.5px; }
+.chart svg { display: block; width: 100%; height: auto; border-radius: var(--radius); box-shadow: 0 0 0 1px var(--line), 0 24px 60px #0008; }
+.chart .take { margin: 16px 0 0; }
 /* Another key on the chart: its point and the line to it, in green. */
 .chart .other { opacity: 1; }
 .chart .other circle, .chart .other text { fill: var(--ok); }
 .chart .span { stroke: var(--ok); stroke-width: 1; stroke-dasharray: 3 3; }
 .chart .with { color: var(--text); }
 .chart .with.bad { color: var(--bad); }
-.compare { margin-top: 14px; }
+.compare { margin-top: 18px; }
 .chart svg { background: radial-gradient(circle at 50% 45%, var(--dusk), var(--night) 75%); cursor: grab; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .chart svg.held { cursor: grabbing; }
 .chart .rim { fill: none; stroke: var(--line); stroke-width: .8; }
@@ -309,7 +320,7 @@ footer .credit { font-size: 13px; }
 .heavens i { position: absolute; top: 0; left: 0; height: 1px; border-radius: 1px; opacity: 0; transform-origin: 0 50%; background: linear-gradient(90deg, transparent, #e8ecff); }
 
 @media (max-width: 720px) {
-  .result, .about.with-sky { grid-template-columns: 1fr; gap: 20px; }
+  .result, .about.with-sky, .chart { grid-template-columns: 1fr; gap: 20px; }
   .self { max-width: 420px; margin: 0 auto; }
   .row { flex-wrap: wrap; }
   .row input { flex: 1 1 14rem; }

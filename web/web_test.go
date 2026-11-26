@@ -805,7 +805,7 @@ func TestChart(t *testing.T) {
 	var calls atomic.Int32
 	s := New(fakeLookup(&calls))
 	body := get(t, s.Handler(), "/?host=example.com").Body.String()
-	start := strings.Index(body, `<div class="chart">`)
+	start := strings.Index(body, `<section class="chart"`)
 	if start < 0 {
 		t.Fatal("no chart")
 	}
