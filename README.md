@@ -155,6 +155,8 @@ There is no per-visitor rate limit: put the site behind a reverse proxy that has
 
 The pages load nothing from other origins and carry no inline script or style, under a `default-src 'none'` content security policy. The typefaces (Bricolage Grotesque and IBM Plex Mono, both under the SIL Open Font License) are served by the site itself; see `web/static/fonts/NOTICE.txt`.
 
+**On the wire.** The files of the site are linked under a version made from their contents (`/static/<version>/…`), so a browser keeps them for a year and never asks again; when one changes, its address does. Pages, styles, scripts and SVG drawings travel gzipped, about four times smaller. No more than four answers are compressed at once, because a compressor holds a megabyte and the site is meant to live in very little memory: a fifth goes as it is. The server also sends `Permissions-Policy` and `Cross-Origin-Opener-Policy`, and, started with an `https` address (`-url`), `Strict-Transport-Security` for a year.
+
 ### Container
 
 ```sh

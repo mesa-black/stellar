@@ -260,20 +260,48 @@
   chart.addEventListener("pointercancel", release);
 
   // One turn in two minutes; none for a visitor who asked for less motion.
+  // The chart is redrawn some twenty-five times a second, which is plenty for
+  // so slow a turn, and not at all while it is out of sight: off the screen,
+  // in a hidden tab, or still.
   var still = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : { matches: false };
-  var last = 0;
+  var seen = true, turning = false, last = 0, owed = 0;
+
   function turn(now) {
+    if (!seen || document.hidden || still.matches) {
+      turning = false;
+      return;
+    }
     var elapsed = last ? Math.min(now - last, 100) : 0;
     last = now;
-    if (!held && !still.matches && !document.hidden) {
+    if (!held) {
       if (rest > 0) {
         rest -= elapsed;
       } else {
-        yaw += elapsed * 2 * Math.PI / 120000;
-        draw();
+        owed += elapsed;
+        if (owed >= 40) {
+          yaw += owed * 2 * Math.PI / 120000;
+          owed = 0;
+          draw();
+        }
       }
     }
     requestAnimationFrame(turn);
   }
-  requestAnimationFrame(turn);
+
+  function wake() {
+    if (turning) return;
+    turning = true;
+    last = 0;
+    requestAnimationFrame(turn);
+  }
+
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) {
+      seen = entries[entries.length - 1].isIntersecting;
+      if (seen) wake();
+    }).observe(chart);
+  }
+  document.addEventListener("visibilitychange", wake);
+  if (still.addEventListener) still.addEventListener("change", wake);
+  wake();
 })();

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
@@ -8,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"image/png"
+	"io"
 	"math"
 	"net"
 	"net/http"
@@ -646,6 +648,95 @@ func TestStatic(t *testing.T) {
 	}
 	if rec := get(t, h, "/nope"); rec.Code != 404 {
 		t.Errorf("/nope: status %d", rec.Code)
+	}
+}
+
+// The pages link to the files of the site under their version, where they
+// may be kept for ever; any other address serves them for an hour.
+func TestStaticVersion(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+	body := get(t, h, "/").Body.String()
+	base := "/static/" + staticVersion()
+	for _, f := range []string{"/app.css", "/app.js", "/favicon.svg"} {
+		if !strings.Contains(body, `"`+base+f+`"`) {
+			t.Errorf("the page does not link to %s%s", base, f)
+		}
+	}
+	for path, want := range map[string]string{
+		base + "/app.css": "public, max-age=31536000, immutable",
+		base + "/fonts/ibm-plex-mono-500-normal.woff2": "public, max-age=31536000, immutable",
+		"/static/app.css":                              "public, max-age=3600",
+		"/static/0123456789ab/app.js":                  "public, max-age=3600",
+		"/static/fonts/ibm-plex-mono-500-normal.woff2": "public, max-age=3600",
+	} {
+		rec := get(t, h, path)
+		if rec.Code != 200 || rec.Header().Get("Cache-Control") != want {
+			t.Errorf("%s: status %d, Cache-Control %q, want %q", path, rec.Code, rec.Header().Get("Cache-Control"), want)
+		}
+	}
+	if rec := get(t, h, base+"/nope.css"); rec.Code != 404 {
+		t.Errorf("a missing file under the version: status %d", rec.Code)
+	}
+}
+
+// Text travels gzipped to whoever accepts it, and comes back whole; pictures
+// and fonts go as they are.
+func TestCompress(t *testing.T) {
+	var calls atomic.Int32
+	h := New(fakeLookup(&calls)).Handler()
+	fetch := func(path, accept string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("GET", path, nil)
+		if accept != "" {
+			req.Header.Set("Accept-Encoding", accept)
+		}
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+	for _, path := range []string{"/?host=example.com", "/static/app.css", "/static/app.js", "/sky/example.com.svg"} {
+		plain, zipped := fetch(path, ""), fetch(path, "gzip, br")
+		if plain.Header().Get("Content-Encoding") != "" {
+			t.Errorf("%s: compressed for a client that did not ask", path)
+		}
+		if zipped.Header().Get("Content-Encoding") != "gzip" || !strings.Contains(strings.Join(zipped.Header().Values("Vary"), ","), "Accept-Encoding") {
+			t.Errorf("%s: not gzipped: %v", path, zipped.Header())
+			continue
+		}
+		r, err := gzip.NewReader(zipped.Body)
+		if err != nil {
+			t.Fatalf("%s: %v", path, err)
+		}
+		whole, _ := io.ReadAll(r)
+		if path != "/?host=example.com" && string(whole) != plain.Body.String() {
+			t.Errorf("%s: the gzipped answer is not the plain one", path)
+		}
+		if zipped.Body.Len() != 0 || len(whole)*2 < plain.Body.Len() {
+			t.Errorf("%s: %d bytes came back from %d", path, len(whole), plain.Body.Len())
+		}
+	}
+	for _, path := range []string{"/sky/example.com.png", "/static/fonts/ibm-plex-mono-500-normal.woff2", "/healthz", "/nope"} {
+		if rec := fetch(path, "gzip"); rec.Header().Get("Content-Encoding") != "" {
+			t.Errorf("%s: compressed, and should not be", path)
+		}
+	}
+}
+
+// The site forbids what it does not use, and asks for https once it knows it
+// is served that way.
+func TestSecurityHeaders(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	rec := get(t, s.Handler(), "/")
+	if rec.Header().Get("Permissions-Policy") == "" || rec.Header().Get("Cross-Origin-Opener-Policy") != "same-origin" {
+		t.Errorf("headers: %v", rec.Header())
+	}
+	if rec.Header().Get("Strict-Transport-Security") != "" {
+		t.Error("a site that does not know it is served over https asks for it")
+	}
+	s.BaseURL = "https://stellar.example"
+	if got := get(t, s.Handler(), "/").Header().Get("Strict-Transport-Security"); got != "max-age=31536000" {
+		t.Errorf("Strict-Transport-Security = %q", got)
 	}
 }
 

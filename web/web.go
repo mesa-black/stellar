@@ -9,7 +9,6 @@ import (
 	"errors"
 	"html/template"
 	"io"
-	"io/fs"
 	"net"
 	"net/http"
 	"net/url"
@@ -102,20 +101,21 @@ func New(lookup Lookup) *Server {
 
 // Handler returns the routes of the site.
 func (s *Server) Handler() http.Handler {
-	static, _ := fs.Sub(staticFS, "static")
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("POST /key", s.key)
 	mux.HandleFunc("GET /sky/{file}", s.sky)
 	mux.HandleFunc("GET /card/{file}", s.card)
-	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(static)))
+	mux.Handle("GET /static/", static())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "ok\n") })
-	return s.headers(mux)
+	return s.headers(compress(mux))
 }
 
 // headers sets the security headers. The pages carry no inline script or
 // style and load nothing from elsewhere, except the music when there is one,
-// so the policy can be strict.
+// so the policy can be strict. The site asks for no device and opens no
+// window it needs to talk to, and says so. Started with an https address, it
+// tells browsers to come back over https only, for a year.
 func (s *Server) headers(next http.Handler) http.Handler {
 	csp := "default-src 'none'; img-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 	if u, err := url.Parse(s.Music); err == nil && u.Scheme == "https" && u.Hostname() != "" {
@@ -123,9 +123,15 @@ func (s *Server) headers(next http.Handler) http.Handler {
 		// download over to one of its own servers.
 		csp += "; media-src https://" + u.Hostname() + " https://*." + u.Hostname()
 	}
+	secure := strings.HasPrefix(s.BaseURL, "https://")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("Content-Security-Policy", csp)
+		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+		h.Set("Cross-Origin-Opener-Policy", "same-origin")
+		if secure {
+			h.Set("Strict-Transport-Security", "max-age=31536000")
+		}
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")
 		next.ServeHTTP(w, r)
@@ -141,6 +147,8 @@ type view struct {
 	Langs     []langLink
 	// Base is the site's public address, empty when unknown.
 	Base string
+	// Static is where the files of the site are, under their version.
+	Static string
 	// Music and MusicCredit are the server's; empty when there is none.
 	Music       string
 	MusicCredit string
@@ -211,7 +219,7 @@ type view struct {
 
 // newView starts a page in the language of the request.
 func (s *Server) newView(r *http.Request, query string) view {
-	v := view{Query: query, Base: s.BaseURL, Music: s.Music, MusicCredit: s.MusicCredit}
+	v := view{Query: query, Base: s.BaseURL, Music: s.Music, MusicCredit: s.MusicCredit, Static: "/static/" + staticVersion()}
 	now := s.now().UTC()
 	v.Stardate, v.StardateOf = stardate(now), now.Format("2006-01-02 15:04 UTC")
 	if host := s.selfHost(); host != "" {

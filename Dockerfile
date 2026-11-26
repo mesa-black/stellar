@@ -16,7 +16,9 @@
 # for: Go cross-compiles, so an image for amd64 and arm64 is two compilations
 # on one machine and nothing runs under emulation. The checks run once, on the
 # machine that builds.
-FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27-alpine AS build
+# Pinned by digest: a tag is a pointer somebody else moves, and what compiles
+# the binary should be the bytes that were checked. Update it on purpose.
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.27-alpine@sha256:70bd7ddea8b6cbe5d6943cde279d6b67feb10cc924fb9100d1d8757c1575b280 AS build
 WORKDIR /src
 # No dependency outside the standard library: go.mod is the whole manifest.
 COPY go.mod ./
