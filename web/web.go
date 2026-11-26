@@ -104,6 +104,7 @@ func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("POST /key", s.key)
+	mux.HandleFunc("POST /verify", s.verify)
 	mux.HandleFunc("GET /sky/{file}", s.sky)
 	mux.HandleFunc("GET /card/{file}", s.card)
 	mux.HandleFunc("GET /chart/{file}", s.chartFile)
@@ -176,12 +177,14 @@ type view struct {
 	With, WithQuery, WithName, WithApart, WithError string
 	WithSame                                        bool
 	with                                            *[32]byte
-	// Dial is the gate of the key as six numbers of the catalogue, Catalogue
-	// its 64 signs and Signs the address of their picture: what the page
-	// needs to let the gate be dialled by hand.
-	Dial      string
-	Catalogue []catalogueSign
-	Signs     string
+	// Verify is what came of comparing a key the visitor was given with the
+	// key the host serves, VerifyError why the key given could not be read,
+	// and Signs the address of the picture of the catalogue, which the
+	// script spins through before it shows the result.
+	Verify      *verification
+	VerifyError string
+	Signs       string
+	digest      [32]byte
 	// Chart is the place of the key among the signs, and Trip whether it
 	// also shows the place this site looked from.
 	Chart template.HTML
@@ -304,38 +307,7 @@ func (s *Server) home(w http.ResponseWriter, r *http.Request) {
 			v.share("")
 		}
 	} else if query != "" {
-		host, seen, err := s.resolve(r.Context(), query)
-		if err != nil {
-			var key string
-			key, status = explain(err)
-			v.Error = v.S(key)
-		} else {
-			v.Query, v.Host = host, host
-			s.compare(r, &v)
-			v.show(seen.Key)
-			v.KeyAlgorithm, v.Issuer = seen.KeyAlgorithm, seen.Issuer
-			v.Version, v.KeyExchange, v.PostQuantum = seen.Version, seen.KeyExchange, seen.PostQuantum
-			if !seen.NotAfter.IsZero() {
-				v.ValidUntil = longDate(v.Lang, seen.NotAfter)
-			}
-			v.announce(host, seen)
-			if s.Logs != nil {
-				// Only when asked: the name goes to a third party.
-				v.LogsState, v.LogsURL = "offer", v.HostURL(host)+"&logs=1#logs"
-				if r.URL.Query().Get("logs") == "1" {
-					issuances, err := s.logged(r.Context(), host)
-					switch {
-					case errors.Is(err, errLogsBusy):
-						v.LogsState = "busy"
-					case err != nil:
-						v.LogsState = "failed"
-					default:
-						v.showLogs(issuances, seen.Key.Digest)
-					}
-				}
-			}
-			v.share(s.BaseURL)
-		}
+		status = s.showHost(r, &v, query)
 	}
 	if v.Name == "" && v.Error == "" {
 		s.showSelf(&v)
@@ -399,6 +371,44 @@ func (s *Server) RefreshSelf() {
 	s.mu.Lock()
 	s.cache[host] = cached{seen, s.now()}
 	s.mu.Unlock()
+}
+
+// showHost fills the page with what a host serves: its sky and what the
+// certificate, the handshake and the DNS say beside it. It returns the
+// status of the answer; a host that cannot be read leaves only the reason.
+func (s *Server) showHost(r *http.Request, v *view, query string) int {
+	host, seen, err := s.resolve(r.Context(), query)
+	if err != nil {
+		key, status := explain(err)
+		v.Error = v.S(key)
+		return status
+	}
+	v.Query, v.Host = host, host
+	s.compare(r, v)
+	v.show(seen.Key)
+	v.KeyAlgorithm, v.Issuer = seen.KeyAlgorithm, seen.Issuer
+	v.Version, v.KeyExchange, v.PostQuantum = seen.Version, seen.KeyExchange, seen.PostQuantum
+	if !seen.NotAfter.IsZero() {
+		v.ValidUntil = longDate(v.Lang, seen.NotAfter)
+	}
+	v.announce(host, seen)
+	if s.Logs != nil {
+		// Only when asked: the name goes to a third party.
+		v.LogsState, v.LogsURL = "offer", v.HostURL(host)+"&logs=1#logs"
+		if r.URL.Query().Get("logs") == "1" {
+			issuances, err := s.logged(r.Context(), host)
+			switch {
+			case errors.Is(err, errLogsBusy):
+				v.LogsState = "busy"
+			case err != nil:
+				v.LogsState = "failed"
+			default:
+				v.showLogs(issuances, seen.Key.Digest)
+			}
+		}
+	}
+	v.share(s.BaseURL)
+	return http.StatusOK
 }
 
 func (s *Server) key(w http.ResponseWriter, r *http.Request) {
@@ -599,7 +609,7 @@ func (v *view) show(key stellar.Key) {
 		o := stellar.New(*v.origin)
 		v.Origin = &sign{Name: o.Name, Word: "Chevron " + strconv.Itoa(stellar.GateSigns+1), SVG: template.HTML(o.GlyphSVG())}
 	}
-	v.dial(key.Digest)
+	v.digest = key.Digest
 	v.Trip = v.origin != nil && *v.origin != key.Digest
 	v.Chart = chart(key.Digest, v.origin, v.S("chart.arrival"), v.S("gate.origin"), false, v.with, v.With)
 	if v.with != nil {

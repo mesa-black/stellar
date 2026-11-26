@@ -159,25 +159,32 @@ button.quiet:hover { background: var(--panel); }
 .gate .origin::before { content: ""; position: absolute; top: -7px; left: 50%; width: 10px; height: 10px; margin-left: -5px; background: var(--accent); clip-path: polygon(0 0, 100% 0, 50% 100%); }
 .gate .note { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
 
-/* Dialling the gate: six places to fill, and the catalogue to pick from.
-   Every sign is a window on one picture of the 64, placed by the script. */
-.dial { margin-top: 12px; border-top: 0; padding: 0; font-size: 13px; }
-.dial p { margin: 8px 0; text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
-.dial p strong { color: var(--text); }
-.dial-slots { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-.dial-slots li { aspect-ratio: 1; border: 1px dashed var(--line); border-radius: var(--radius); background-size: 800% 800%; background-repeat: no-repeat; }
-.dial-slots li.ok { border: 1px solid var(--ok); }
-.dial-slots li.bad { border: 1px solid var(--bad); }
-.dial .dial-status { min-height: 1.5em; color: var(--text); text-align: left; }
-.dial-status[data-state="ok"] { color: var(--ok); }
-.dial-status[data-state="bad"] { color: var(--bad); }
-.dial-status[data-state="helped"] { color: var(--warn); }
-.dial-signs { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; }
-.dial-signs button { aspect-ratio: 1; padding: 0; border: 1px solid var(--line); background-color: transparent; background-size: 800% 800%; background-repeat: no-repeat; }
-.dial-signs button:hover { background-color: var(--panel); border-color: var(--accent); }
-.dial-signs button.lead { border-color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn); }
-.dial .dial-lead { min-height: 1.5em; margin-top: 0; color: var(--warn); text-align: left; }
-.dial-signs button:disabled { opacity: .22; cursor: default; border-color: var(--line); background-color: transparent; }
+/* Checking a key the visitor was given: its six signs in a row, each lit
+   green or red, the verdict under them, and the form folded below. While
+   the script spins a sign, its place shows the picture of the catalogue. */
+.verify { margin-top: 14px; }
+.verify .over { margin: 0 0 8px; }
+.verify ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.verify li { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 2px 5px; border: 1px solid var(--line); border-radius: var(--radius); }
+/* The face of a place is square, like a sign: the picture of the catalogue,
+   eight signs across, shows exactly one of them in it. */
+.verify .face { width: 100%; background-size: 800% 800%; background-repeat: no-repeat; }
+.verify li svg { display: block; width: 100%; height: auto; box-shadow: none; border-radius: 0; }
+.verify li span { max-width: 100%; text-align: center; color: var(--muted); font: 500 .58rem/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.verify li.ok { border-color: var(--ok); color: var(--ok); }
+.verify li.bad { border-color: var(--bad); color: var(--bad); }
+.verify li.spin { border-color: var(--line); color: var(--muted); }
+.verify li.spin svg { visibility: hidden; }
+.verdict { margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--muted); background: var(--panel); border-radius: 0 var(--radius) var(--radius) 0; font-size: 14px; }
+.verdict[data-match="yes"] { border-color: var(--ok); }
+.verdict[data-match="yes"] strong { color: var(--ok); }
+.verdict[data-match="no"], .verdict[data-match="near"], .verdict[data-match="error"] { border-color: var(--bad); }
+.verdict[data-match="no"] strong, .verdict[data-match="near"] strong { color: var(--bad); }
+.verdict .given { display: block; margin-top: 6px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.verify details { border-top: 0; padding: 10px 0 0; font-size: 13px; }
+.verify details p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
+.verify form button { margin-top: 8px; }
+.refused { margin: 8px 0 0; color: var(--bad); font-size: 13px; }
 
 /* The chart: the place of the key among the signs, turned by the script. A
    section of its own under the result, the drawing beside its words, so

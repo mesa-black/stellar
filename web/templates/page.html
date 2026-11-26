@@ -47,20 +47,34 @@
           {{end}}{{if .Origin}}<li class="origin" title="{{.Origin.Name}}">{{.Origin.SVG}}<span>{{.Origin.Word}}</span><span>{{.T "gate.origin"}}</span></li>{{end}}
         </ol>
         <p class="note">{{if .Origin}}{{.T "gate.text"}}{{else}}{{.T "gate.text.alone"}}{{end}}</p>
-        <details class="dial" id="dial" hidden data-gate="{{.Dial}}" data-signs="{{.Signs}}"
-                 data-next="{{.S "dial.next"}}" data-bad="{{.S "dial.bad"}}" data-ok="{{.S "dial.ok"}}" data-helped="{{.S "dial.ok.helped"}}"
-                 data-hint-row="{{.S "dial.hint.row"}}" data-hint-name="{{.S "dial.hint.name"}}" data-hint-sign="{{.S "dial.hint.sign"}}">
-          <summary>{{.T "dial.summary"}}</summary>
-          <p>{{.T "dial.why"}}</p>
-          <p>{{.T "dial.text"}}</p>
-          <ol class="dial-slots"><li></li><li></li><li></li><li></li><li></li><li></li></ol>
-          <p class="dial-status" role="status" aria-live="polite"></p>
-          <p class="dial-lead" aria-live="polite"></p>
-          <div class="dial-signs">
-            {{range .Catalogue}}<button type="button" data-k="{{.K}}" title="{{.Name}}" aria-label="{{.Name}}"></button>{{end}}
-          </div>
-          <button type="button" class="quiet" id="dial-again">{{.T "dial.again"}}</button>
-        </details>
+        {{if .Host}}
+        <div class="verify" id="verify"{{if .Verify}} data-signs="{{.Signs}}" data-gate="{{.Verify.Gate}}"{{end}}>
+          {{if .Verify}}
+          <p class="over">{{.T "verify.label"}}</p>
+          <ol>
+            {{range .Verify.Signs}}<li class="{{if .Same}}ok{{else}}bad{{end}}" title="{{.Name}}"><div class="face">{{.SVG}}</div><span>{{.Word}}</span></li>
+            {{end}}
+          </ol>
+          <p class="verdict" data-match="{{if .Verify.Match}}yes{{else if .Verify.Near}}near{{else}}no{{end}}" role="status">
+            {{if .Verify.Match}}{{.T "verify.yes" .Host}}{{else if .Verify.Near}}{{.T "verify.near" .Host}}{{else}}{{.T "verify.no" .Host .Verify.Differ}}{{end}}
+            <span class="given">{{.T "verify.given" .Verify.Name}} <span class="mono">{{.Verify.Fingerprint}}</span></span>
+          </p>
+          {{end}}
+          {{if .VerifyError}}<p class="verdict" data-match="error" role="status">{{.VerifyError}}</p>{{end}}
+          <details{{if .VerifyError}} open{{end}}>
+            <summary>{{.T "verify.summary"}}</summary>
+            <p>{{.T "verify.why" .Host}}</p>
+            <form action="/verify#verify" method="post" data-private="{{.S "verify.private.kept"}}">
+              <label for="given">{{.T "paste.label"}}</label>
+              <textarea id="given" name="key" rows="4" spellcheck="false" required placeholder="SHA256:… / ssh-ed25519 AAAA… / -----BEGIN PUBLIC KEY-----"></textarea>
+              <input type="hidden" name="host" value="{{.Host}}">
+              {{if .LangParam}}<input type="hidden" name="lang" value="{{.LangParam}}">{{end}}
+              <p class="refused" hidden></p>
+              <button type="submit">{{.T "verify.submit"}}</button>
+            </form>
+          </details>
+        </div>
+        {{end}}
       </div>
     </div>
     <div class="facts">
@@ -182,10 +196,11 @@
 
   <details class="paste"{{if and .Name (not .Host)}} open{{end}}>
     <summary>{{.T "paste.summary"}}</summary>
-    <form action="/key" method="post">
+    <form action="/key" method="post" data-private="{{.S "verify.private.kept"}}">
       <label for="key">{{.T "paste.label"}}</label>
       <textarea id="key" name="key" rows="4" spellcheck="false" required placeholder="ssh-ed25519 AAAA…"></textarea>
       {{if .LangParam}}<input type="hidden" name="lang" value="{{.LangParam}}">{{end}}
+      <p class="refused" hidden></p>
       <button type="submit">{{.T "form.submit"}}</button>
     </form>
   </details>

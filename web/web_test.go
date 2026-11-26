@@ -935,30 +935,73 @@ func TestCompare(t *testing.T) {
 	}
 }
 
-// The page lays out the catalogue so that a gate can be dialled: the six
-// signs expected, the 64 to pick from, and their picture, kept for ever.
-func TestDial(t *testing.T) {
+// A key the visitor was given is compared, whole, with the key the host
+// serves: confirmed when they are the same, refused when they are not, and a
+// private key is turned away unread.
+func TestVerify(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()
-	body := get(t, h, "/?host=example.com").Body.String()
-	var expected []string
-	for _, k := range stellar.Gate(sha256.Sum256([]byte("example.com"))) {
-		expected = append(expected, strconv.Itoa(k))
+	post := func(host, key string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("POST", "/verify", strings.NewReader(url.Values{"host": {host}, "key": {key}, "lang": {"en"}}.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
 	}
-	if !strings.Contains(body, `data-gate="`+strings.Join(expected, ",")+`"`) {
-		t.Error("the page does not say which six signs it expects")
+	served := stellar.Key{Digest: sha256.Sum256([]byte("example.com"))}
+	other := stellar.Key{Digest: sha256.Sum256([]byte("example.org"))}
+
+	if body := get(t, h, "/?host=example.com").Body.String(); !strings.Contains(body, `action="/verify#verify"`) || strings.Contains(body, `class="verdict"`) {
+		t.Error("the page of a host offers no check, or shows a verdict nobody asked for")
 	}
-	if got := strings.Count(body, `<button type="button" data-k="`); got != stellar.GateCatalogue {
-		t.Errorf("%d signs to pick from, want %d", got, stellar.GateCatalogue)
+	if strings.Contains(get(t, h, "/").Body.String(), `id="verify"`) {
+		t.Error("the empty page offers a key to check, against nothing")
 	}
-	if !strings.Contains(body, `title="`+stellar.Sign(63).Name+`"`) {
-		t.Error("the last sign of the catalogue is not named")
+
+	rec := post("example.com", served.Fingerprint())
+	body := rec.Body.String()
+	if rec.Code != 200 || !strings.Contains(body, `data-match="yes"`) || !strings.Contains(body, "Key confirmed.") {
+		t.Errorf("the key the host serves is not confirmed: status %d", rec.Code)
 	}
+	if got := strings.Count(body, `<li class="ok"`); got != stellar.GateSigns || strings.Contains(body, `<li class="bad"`) {
+		t.Errorf("%d signs lit green for the same key, want %d", got, stellar.GateSigns)
+	}
+	var numbers []string
+	for _, k := range stellar.Gate(served.Digest) {
+		numbers = append(numbers, strconv.Itoa(k))
+	}
+	if !strings.Contains(body, `data-gate="`+strings.Join(numbers, ",")+`"`) || !strings.Contains(body, `data-signs="/signs/`+signs().name+`"`) {
+		t.Error("the page does not give the script the signs to stop on, or their picture")
+	}
+
+	rec = post("example.com", other.Fingerprint())
+	body = rec.Body.String()
+	differ := 0
+	for i, k := range stellar.Gate(other.Digest) {
+		if k != stellar.Gate(served.Digest)[i] {
+			differ++
+		}
+	}
+	if rec.Code != 200 || !strings.Contains(body, `data-match="no"`) || !strings.Contains(body, "This is not the key example.com serves.") ||
+		!strings.Contains(body, fmt.Sprintf("and %d of the six signs", differ)) ||
+		strings.Count(body, `<li class="bad"`) != differ || !strings.Contains(body, stellar.New(other.Digest).Name) || !strings.Contains(body, other.Fingerprint()) {
+		t.Errorf("another key is not refused as it should: status %d, %d signs differ", rec.Code, differ)
+	}
+
+	rec = post("example.com", "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAA\n-----END OPENSSH PRIVATE KEY-----")
+	if body = rec.Body.String(); rec.Code != 422 || !strings.Contains(body, "This is a private key.") || strings.Contains(body, `data-match="yes"`) || strings.Contains(body, "b3BlbnNzaC1rZXk") {
+		t.Errorf("a private key: status %d", rec.Code)
+	}
+	if rec = post("example.com", "not a key"); rec.Code != 422 || !strings.Contains(rec.Body.String(), `data-match="error"`) {
+		t.Errorf("something that is no key: status %d", rec.Code)
+	}
+	if rec = post("down.example", served.Fingerprint()); rec.Code == 200 || strings.Contains(rec.Body.String(), `class="verdict"`) {
+		t.Errorf("a host that cannot be read gives a verdict: status %d", rec.Code)
+	}
+
+	// The picture of the catalogue, which the script spins through.
 	sheet := signs()
-	if !strings.Contains(body, `data-signs="/signs/`+sheet.name+`"`) {
-		t.Error("the page does not name the picture of the catalogue")
-	}
-	rec := get(t, h, "/signs/"+sheet.name)
+	rec = get(t, h, "/signs/"+sheet.name)
 	if rec.Code != 200 || rec.Header().Get("Content-Type") != "image/svg+xml" || !strings.Contains(rec.Header().Get("Cache-Control"), "immutable") {
 		t.Errorf("the picture of the catalogue: status %d, %v", rec.Code, rec.Header())
 	}
@@ -967,10 +1010,6 @@ func TestDial(t *testing.T) {
 	}
 	if rec := get(t, h, "/signs/signs-000000000000.svg"); rec.Code != 404 {
 		t.Errorf("another name for the picture: status %d", rec.Code)
-	}
-	// Without a key shown, there is nothing to dial.
-	if strings.Contains(get(t, h, "/").Body.String(), `id="dial"`) {
-		t.Error("the empty page offers a gate to dial")
 	}
 }
 
