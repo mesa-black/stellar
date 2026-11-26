@@ -64,6 +64,7 @@
         <dt>{{.T "fact.fingerprint"}}</dt><dd class="mono">{{.Fingerprint}}</dd>
         {{if .KeyAlgorithm}}<dt>{{.T "fact.certificate"}}</dt><dd>{{.KeyAlgorithm}}{{if .ValidUntil}}{{.T "cert.until" .ValidUntil}}{{end}}{{if .Issuer}}{{.T "cert.issuer" .Issuer}}{{end}}</dd>{{end}}
         {{if .Version}}<dt>{{.T "fact.connection"}}</dt><dd>{{.Version}}{{if .KeyExchange}}{{.T "conn.exchange" .KeyExchange}}{{end}}</dd>{{end}}
+        <dt>{{.T "fact.stardate"}}</dt><dd class="mono" title="{{.StardateOf}}">{{.Stardate}}</dd>
       </dl>
       {{if .Version}}
       <p class="quantum" data-pq="{{if .PostQuantum}}yes{{else}}no{{end}}">

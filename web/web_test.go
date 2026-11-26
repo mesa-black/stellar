@@ -742,6 +742,33 @@ func TestChart(t *testing.T) {
 	}
 }
 
+// A stardate is the year and the share of it already gone, never rounded up
+// into the next year.
+func TestStardate(t *testing.T) {
+	for moment, want := range map[string]string{
+		"2026-01-01T00:00:00Z":      "2026.00",
+		"2026-07-02T12:00:00Z":      "2026.50",
+		"2026-11-26T10:00:00Z":      "2026.90",
+		"2026-12-31T23:59:59Z":      "2026.99",
+		"2028-12-31T23:59:59+02:00": "2028.99",
+	} {
+		at, err := time.Parse(time.RFC3339, moment)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := stardate(at); got != want {
+			t.Errorf("stardate(%s) = %s, want %s", moment, got, want)
+		}
+	}
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	s.now = func() time.Time { return time.Date(2026, 11, 26, 10, 0, 0, 0, time.UTC) }
+	body := get(t, s.Handler(), "/?host=example.com&lang=fr").Body.String()
+	if !strings.Contains(body, `<dt>Date stellaire</dt><dd class="mono" title="2026-11-26 10:00 UTC">2026.90</dd>`) {
+		t.Error("the page does not give its stardate")
+	}
+}
+
 // The sky can be taken away, as an SVG or as a square PNG.
 func TestDownload(t *testing.T) {
 	var calls atomic.Int32

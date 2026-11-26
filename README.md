@@ -253,6 +253,8 @@ Under the gate, the website draws where the key stands in space. This is a pictu
 
 The chart is drawn by the server and stands without a script. With one, it turns slowly, and under the mouse or the finger; it stays still for a visitor who asked their system for less motion.
 
+**Stardate.** Among the facts of a result, the page gives the moment it was drawn the way a ship's log would: the year, then the share of that year already gone, to two decimals (`2026.90` is nine tenths into 2026). It is a wink, and nothing is computed from it.
+
 ## Library
 
 ```go

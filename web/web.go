@@ -149,6 +149,10 @@ type view struct {
 	Gate   []sign
 	Origin *sign
 	origin *[32]byte
+	// Stardate is the moment the page was drawn, the way a ship's log would
+	// write it, and StardateOf the same moment in plain words.
+	Stardate   string
+	StardateOf string
 	// Chart is the place of the key among the signs, and Trip whether it
 	// also shows the place this site looked from.
 	Chart template.HTML
@@ -208,6 +212,8 @@ type view struct {
 // newView starts a page in the language of the request.
 func (s *Server) newView(r *http.Request, query string) view {
 	v := view{Query: query, Base: s.BaseURL, Music: s.Music, MusicCredit: s.MusicCredit}
+	now := s.now().UTC()
+	v.Stardate, v.StardateOf = stardate(now), now.Format("2006-01-02 15:04 UTC")
 	if host := s.selfHost(); host != "" {
 		s.mu.Lock()
 		if hit, ok := s.cache[host]; ok {
@@ -484,6 +490,22 @@ func (v *view) announce(host string, seen stellar.Host) {
 type drawn struct {
 	digest        [32]byte
 	width, height int
+}
+
+// stardate writes a moment as a year and the share of that year already
+// gone, to two decimals: 2026.90 is nine tenths into 2026. One hundredth of
+// a year is a little over three and a half days. It is a wink, not a
+// calendar: nothing is computed from it.
+func stardate(t time.Time) string {
+	t = t.UTC()
+	start := time.Date(t.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+	gone := t.Sub(start).Seconds() / start.AddDate(1, 0, 0).Sub(start).Seconds()
+	// Truncated, so that the last days of December do not read as next year.
+	hundredths := strconv.Itoa(int(gone * 100))
+	if len(hundredths) < 2 {
+		hundredths = "0" + hundredths
+	}
+	return strconv.Itoa(t.Year()) + "." + hundredths
 }
 
 // mapSide is the side of the square PNG of a sky, in pixels.
