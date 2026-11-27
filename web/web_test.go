@@ -1000,6 +1000,12 @@ func TestVerify(t *testing.T) {
 		t.Errorf("a host that cannot be read gives a verdict: status %d", rec.Code)
 	}
 
+	// The same check asked by a link, as the browser extension asks it.
+	rec = get(t, h, "/verify?host=example.com&key="+url.QueryEscape(served.Fingerprint()))
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `data-match="yes"`) {
+		t.Errorf("a key given in the address is not checked: status %d", rec.Code)
+	}
+
 	// The picture of the catalogue, which the script spins through.
 	sheet := signs()
 	rec = get(t, h, "/signs/"+sheet.name)

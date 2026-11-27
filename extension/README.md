@@ -30,7 +30,9 @@ public key: the same sky the website draws for the same key.
 Nothing, until you press "Compare with what the server sees". That button
 sends the name of the site and the fingerprint of its public key to
 stellar.mesa.black, in a new tab, and nothing else. A public key is public;
-the name of the site you are on is what you are telling the server.
+the name of the site you are on is what you are telling the server. That
+is why the extension declares, and Firefox says when it is installed, that
+it transmits "browsing activity": this, on this click, and nothing else.
 
 What each site showed last time is kept in this browser's storage for the
 extension, and nowhere else.

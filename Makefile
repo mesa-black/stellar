@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help test image serve stop sky extension
+.PHONY: help test image serve stop sky extension browser
 
 # Everything runs in containers: the workstation needs a container engine, not
 # Go. Podman by default; `make serve ENGINE=docker` works the same.
@@ -13,6 +13,14 @@ help: ## Show this help
 
 test: ## Check formatting, vet and run the tests
 	$(ENGINE) build --target build -t $(IMAGE)-build .
+
+# In the image that compiles Stellar, with the Firefox of its distribution:
+# nothing to install on the machine, and the same browser for everybody.
+browser: ## Drive the site in a real Firefox, without a window, and check what it shows
+	@$(ENGINE) run --rm -v "$(CURDIR):/src:ro" -w /src \
+		-e GOFLAGS=-buildvcs=false -e GOCACHE=/tmp/gocache -e HOME=/tmp -e STELLAR_BROWSER_REQUIRED=1 \
+		$$(sed -n 's/^FROM --platform=[^ ]* \([^ ]*\) AS build$$/\1/p' Dockerfile) \
+		sh -c 'apk add --no-cache firefox >/dev/null && go test -count=1 -run TestBrowser -v ./web'
 
 extension: ## Package the Firefox extension into bin/stellar-extension.zip
 	@mkdir -p bin && rm -f bin/stellar-extension.zip

@@ -30,6 +30,7 @@ merged, and bounded.
 
 ```sh
 make test     # gofmt, go vet and the tests
+make browser  # the site in a real Firefox, without a window
 make serve    # the website on http://localhost:8099, from the image
 ```
 

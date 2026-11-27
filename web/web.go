@@ -105,6 +105,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /{$}", s.home)
 	mux.HandleFunc("POST /key", s.key)
 	mux.HandleFunc("POST /verify", s.verify)
+	// The same check asked by a link: what a program that already holds a
+	// fingerprint opens, the browser extension for one.
+	mux.HandleFunc("GET /verify", s.verify)
 	mux.HandleFunc("GET /sky/{file}", s.sky)
 	mux.HandleFunc("GET /card/{file}", s.card)
 	mux.HandleFunc("GET /chart/{file}", s.chartFile)

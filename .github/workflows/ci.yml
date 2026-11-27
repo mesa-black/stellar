@@ -36,6 +36,13 @@ jobs:
         # JavaScript: the same 32 reference constellations, or it stops here.
         name: Check the extension's port of the mapping
         run: node extension/test.js
+      -
+        # The pages carry a script that no other test runs. This opens the
+        # site in a headless Firefox and acts on it as a visitor would: the
+        # first visit, a private key refused before it is sent, a key
+        # confirmed, a key refused, the chart turning.
+        name: Open the site in a real browser
+        run: make browser ENGINE=docker
 
   # ---------------------------------------------------------------- delivery
   # Only for a push to main, and only once the checks pass.

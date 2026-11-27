@@ -10,6 +10,12 @@ and may be ahead of the last entry: what it has gained since is under
   front of you presented to your own browser, whether it changed since
   last time, and one button to ask stellar.mesa.black whether its server
   sees the same key. Not published on addons.mozilla.org yet.
+- A key can be checked by a link, `/verify?host=…&key=SHA256:…`, which is
+  what the extension opens.
+- Pictures asked for by many at once are drawn once: under load the
+  slowest answers went from ten seconds to under half a second.
+- The pipeline now opens the site in a real Firefox and checks what a
+  visitor sees: `make browser`.
 
 ## v0.5.0 — 2026-11-27
 

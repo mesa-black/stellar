@@ -98,15 +98,26 @@ if (!entry || !entry.digest) {
   }
 
   // The question to the server: the site's own check, asked with the key
-  // seen from here. It opens in a tab, where the answer is drawn.
-  $("check-host").value = entry.host.replace(/:443$/, "");
-  $("check-key").value = print;
-  $("check-lang").value = (browser.i18n.getUILanguage() || "en").slice(0, 2);
+  // seen from here, in a new tab where the answer is drawn. It tells the
+  // server which site you are on, which is why the extension declares that
+  // it transmits browsing activity: this, on this click, and nothing else.
+  //
+  // Firefox is not asked for that agreement here: a question put from this
+  // window closes it, and what was to follow never runs.
   $("check-text").textContent = t("checkText");
   $("check-go").textContent = t("checkGo");
   // A site on another port than 443 cannot be asked about: the server only
   // reads the standard one.
   if (/:\d+$/.test(entry.host) && !/:443$/.test(entry.host)) $("check").hidden = true;
+  $("check-go").addEventListener("click", async function () {
+    var ask = new URL("https://stellar.mesa.black/verify");
+    ask.searchParams.set("host", entry.host.replace(/:443$/, ""));
+    ask.searchParams.set("key", print);
+    ask.searchParams.set("lang", (browser.i18n.getUILanguage() || "en").slice(0, 2));
+    ask.hash = "verify";
+    await browser.tabs.create({ url: ask.href });
+    window.close();
+  });
 
   $("shown").hidden = false;
 }
