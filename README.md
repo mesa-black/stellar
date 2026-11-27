@@ -109,6 +109,7 @@ stellar serve -addr :8080 # or straight from the binary
 | `/card/example.com.png` | The same sky as a 1200 × 630 picture, for the preview shown under a shared link. Pages name it in their `og:image`. |
 | `POST /key` | The constellation of a pasted public key, certificate or fingerprint. |
 | `/healthz` | Liveness probe. |
+| `/version` | Which build answers: a release, or the commit an image was built from. |
 
 **The site's own sky.** Started with its public address (`-url`), the site shows on its empty page the sky of its own key, fetched like any other and refreshed in the background, so a visitor never waits for it.
 
@@ -212,7 +213,7 @@ svg := c.SVG(640, key.Fingerprint())  // SVG document
 
 ## Contributing
 
-The rules that keep Stellar what it is are in [CONTRIBUTING.md](CONTRIBUTING.md), what each release brought in [CHANGELOG.md](CHANGELOG.md), and how to report a flaw, in private, in [SECURITY.md](SECURITY.md).
+The rules that keep Stellar what it is are in [CONTRIBUTING.md](CONTRIBUTING.md), how stellar.mesa.black is run and watched in [docs/operations.md](docs/operations.md), what each release brought in [CHANGELOG.md](CHANGELOG.md), and how to report a flaw, in private, in [SECURITY.md](SECURITY.md).
 
 ## License
 

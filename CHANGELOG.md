@@ -17,6 +17,10 @@ and may be ahead of the last entry: what it has gained since is under
   what the extension opens.
 - Pictures asked for by many at once are drawn once: under load the
   slowest answers went from ten seconds to under half a second.
+- The site says which build answers (`/version`); the pipeline waits until
+  production serves the commit it built, and a probe asks the site every
+  half hour what a visitor would (`tools/probe`). `docs/operations.md` says
+  what we aim for, how to go back, and what has gone wrong before.
 - The pipeline now opens the site in a real Firefox and checks what a
   visitor sees: `make browser`.
 

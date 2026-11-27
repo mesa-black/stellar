@@ -636,6 +636,16 @@ func TestBusy(t *testing.T) {
 	close(release)
 }
 
+func TestVersion(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	s.Version = "0123abc"
+	rec := get(t, s.Handler(), "/version")
+	if rec.Code != 200 || rec.Body.String() != "0123abc\n" || rec.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("/version: status %d, %q", rec.Code, rec.Body.String())
+	}
+}
+
 func TestStatic(t *testing.T) {
 	var calls atomic.Int32
 	h := New(fakeLookup(&calls)).Handler()

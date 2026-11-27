@@ -160,6 +160,42 @@ jobs:
           done
           exit 1
 
+  # A deployment is done when visitors are served by it, not when a line has
+  # changed in another repository: Argo CD takes a few minutes, and a pod
+  # that never becomes ready would leave the old build serving under a green
+  # pipeline. This waits until the site answers with this very commit, five
+  # times in a row since two builds answer in turn while one replaces the
+  # other, then asks it what a visitor would.
+  live:
+    name: Served, and answering
+    needs: deploy
+    runs-on: ubuntu-26.04
+    timeout-minutes: 20
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v7
+      -
+        name: Wait for this build to be the one that answers
+        run: |
+          in_a_row=0
+          for attempt in $(seq 1 90); do
+            served=$(curl -fsS -m 10 https://stellar.mesa.black/version || true)
+            if [ "$served" = "$GITHUB_SHA" ]; then
+              in_a_row=$((in_a_row + 1))
+              [ "$in_a_row" -ge 5 ] && { echo "served: $served"; exit 0; }
+              sleep 2
+            else
+              in_a_row=0
+              sleep 10
+            fi
+          done
+          echo "after fifteen minutes the site still answers '$served', not $GITHUB_SHA" >&2
+          exit 1
+      -
+        name: Ask it what a visitor would
+        run: tools/probe https://stellar.mesa.black
+
   # ----------------------------------------------------------------- release
   # A version tag publishes the command line: one static binary per platform
   # and their checksums, attached to a GitHub release whose text is the tag's

@@ -1,0 +1,49 @@
+#!/bin/sh
+# Asks a running Stellar what a visitor would, from outside:
+#
+#   tools/probe https://stellar.mesa.black
+#
+# It exits with an error, and says which answer was wrong, if the site does
+# not answer, if a real host cannot be looked up, if the key the site itself
+# serves is not confirmed, if a foreign key is, or if the certificate ends
+# within two weeks. It needs curl and openssl, and changes nothing.
+set -eu
+
+base=${1:?usage: tools/probe https://host}
+host=${base#https://}
+host=${host%%/*}
+failed=0
+
+ok() { printf '  ✓ %s\n' "$1"; }
+bad() { printf '  ✗ %s\n' "$1" >&2; failed=1; }
+fetch() { curl -fsS --compressed -m 20 "$1"; }
+
+# 1. It listens.
+if [ "$(fetch "$base/healthz" || true)" = "ok" ]; then ok "the site answers"; else bad "the site does not answer on /healthz"; fi
+
+# 2. It can still read a host: its own, so that nobody else's is asked for.
+page=$(fetch "$base/?host=$host&lang=en" || true)
+print=$(printf '%s' "$page" | sed -n 's/.*data-fingerprint="\(SHA256:[^"]*\)".*/\1/p' | head -1)
+if [ -n "$print" ]; then ok "it reads the key of $host: $print"; else bad "it does not show a sky for $host"; fi
+
+# 3. The key it reads is confirmed, and another one, the digest of all
+# zeroes, is not.
+if [ -n "$print" ]; then
+	asked=$(fetch "$base/verify?host=$host&lang=en&key=$(printf '%s' "$print" | sed 's/+/%2B/g; s|/|%2F|g; s/:/%3A/g')" || true)
+	case "$asked" in *'data-match="yes"'*) ok "the key it serves is confirmed" ;; *) bad "the key it serves is not confirmed by /verify" ;; esac
+	other="SHA256%3AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	asked=$(fetch "$base/verify?host=$host&lang=en&key=$other" || true)
+	case "$asked" in *'data-match="no"'*) ok "another key is refused" ;; *) bad "a key that is not the site's is not refused" ;; esac
+fi
+
+# 4. No page shows a sentence broken by its own values.
+case "$page" in *'%!'*) bad "a page shows a broken sentence (%!…)" ;; *) ok "no broken sentence on the page" ;; esac
+
+# 5. The certificate is not about to end: fourteen days is two renewals missed.
+if end=$(echo | openssl s_client -connect "$host:443" -servername "$host" 2>/dev/null | openssl x509 -noout -checkend 1209600 2>/dev/null); then
+	ok "the certificate is valid for more than fourteen days"
+else
+	bad "the certificate ends within fourteen days, or could not be read"
+fi
+
+exit "$failed"

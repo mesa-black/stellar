@@ -1,0 +1,41 @@
+# The site, asked from outside every half hour.
+#
+# Nothing inside the cluster can say that the cluster is down, and the daily
+# watch of the DNS announcement does not say that the site answers. This runs
+# on GitHub's machines, asks stellar.mesa.black what a visitor would
+# (tools/probe), and fails when an answer is wrong: GitHub then writes to
+# whoever watches this repository's workflows.
+#
+# Two things to know. GitHub starts scheduled runs late when it is busy, by
+# minutes and sometimes more: this is an alarm, not a measurement. And it
+# stops scheduling them in a repository left without activity for sixty days,
+# with a mail that says so.
+name: Probe
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: probe
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: Ask the site what a visitor would
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v7
+      -
+        # Asked twice before it is called a failure: one answer lost on the
+        # way is not an outage, and an alarm that cries for it is soon
+        # ignored.
+        name: Probe
+        run: tools/probe https://stellar.mesa.black || { sleep 60; tools/probe https://stellar.mesa.black; }

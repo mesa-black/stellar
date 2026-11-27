@@ -52,6 +52,9 @@ type Server struct {
 	// guessed from the request could be a local one.
 	BaseURL string
 
+	// Version names the build, as GET /version says it: a release, or the
+	// commit an image was built from.
+	Version string
 	// Logs reads the public certificate logs. Nil turns the feature off:
 	// asking them sends a visitor's host name to a third party, which is a
 	// decision for whoever runs the site.
@@ -114,6 +117,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /signs/{file}", signsFile)
 	mux.Handle("GET /static/", static())
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) { io.WriteString(w, "ok\n") })
+	// Which build answers: what a deployment waits for before it calls
+	// itself done, and what tells two builds apart while one replaces the
+	// other.
+	mux.HandleFunc("GET /version", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		io.WriteString(w, s.Version+"\n")
+	})
 	return s.headers(compress(mux))
 }
 

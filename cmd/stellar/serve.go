@@ -27,6 +27,7 @@ func serve(args []string) error {
 	fs.Parse(args)
 
 	site := web.New(web.PublicLookup)
+	site.Version = version
 	if *music != "" {
 		u, err := url.Parse(*music)
 		if err != nil || u.Scheme != "https" || u.Hostname() == "" {
