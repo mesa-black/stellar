@@ -16,6 +16,15 @@ anywhere.
 These are aims, written down so that a change can be judged against them.
 Nobody is paged: a failure is a mail.
 
+## How it runs
+
+Two pods of the same image, behind one Service, on one node. They share
+nothing: each keeps its own five-minute memory of the keys it read. One that
+crashes or is killed leaves the other answering while it restarts; the node
+itself going down takes both. Each may use 64 MiB, and `GOMEMLIMIT=48MiB`
+tells the Go runtime where to stop: it does not read the container's limit,
+and would otherwise let the heap grow until the kernel killed the pod.
+
 ## What watches
 
 - **`Probe`**, every half hour, from GitHub's machines (`.github/workflows/probe.yml`,
