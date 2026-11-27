@@ -24,7 +24,7 @@ browser: ## Drive the site in a real Firefox, without a window, and check what i
 
 extension: ## Package the Firefox extension into bin/stellar-extension.zip
 	@mkdir -p bin && rm -f bin/stellar-extension.zip
-	@cd extension && zip -q -r -X ../bin/stellar-extension.zip . -x test.js -x README.md
+	@cd extension && zip -q -r -X ../bin/stellar-extension.zip . -x test.js -x README.md -x LISTING.md
 	@printf '  %s\n' "bin/stellar-extension.zip"
 
 image: ## Build the image (runs the tests first)
