@@ -1000,6 +1000,34 @@ func TestVerify(t *testing.T) {
 		t.Errorf("a host that cannot be read gives a verdict: status %d", rec.Code)
 	}
 
+	// Two different keys, and what the public logs say of the one given: a
+	// site that reads the logs offers to ask them, and asks only then.
+	if strings.Contains(post("example.com", other.Fingerprint()).Body.String(), "logs=1") {
+		t.Error("a site that does not read the logs offers to look in them")
+	}
+	logged := New(fakeLookup(&calls))
+	var asked atomic.Int32
+	logged.Logs = func(_ context.Context, host string) ([]Issuance, error) {
+		asked.Add(1)
+		return []Issuance{{Key: served.Digest}, {Key: other.Digest}}, nil
+	}
+	lh := logged.Handler()
+	ask := "/verify?host=example.com&key=" + url.QueryEscape(other.Fingerprint())
+	body = get(t, lh, ask).Body.String()
+	if !strings.Contains(body, "logs=1") || strings.Contains(body, "data-logged") || asked.Load() != 0 {
+		t.Errorf("the logs must be offered and not yet asked: asked %d times", asked.Load())
+	}
+	if body = get(t, lh, ask+"&logs=1").Body.String(); !strings.Contains(body, `data-logged="yes"`) || asked.Load() != 1 {
+		t.Errorf("a key the logs hold for this name is not said to be there (asked %d times)", asked.Load())
+	}
+	stranger := stellar.Key{Digest: sha256.Sum256([]byte("somebody in the way"))}
+	if body = get(t, lh, "/verify?host=example.com&logs=1&key="+url.QueryEscape(stranger.Fingerprint())).Body.String(); !strings.Contains(body, `data-logged="no"`) {
+		t.Error("a key the logs do not hold is not said to be missing")
+	}
+	if body = get(t, lh, "/verify?host=example.com&logs=1&key="+url.QueryEscape(served.Fingerprint())).Body.String(); strings.Contains(body, "data-logged") || strings.Contains(body, "logs=1") {
+		t.Error("the logs are asked about a key that is the right one")
+	}
+
 	// The same check asked by a link, as the browser extension asks it.
 	rec = get(t, h, "/verify?host=example.com&key="+url.QueryEscape(served.Fingerprint()))
 	if rec.Code != 200 || !strings.Contains(rec.Body.String(), `data-match="yes"`) {

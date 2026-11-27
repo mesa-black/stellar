@@ -10,6 +10,9 @@ and may be ahead of the last entry: what it has gained since is under
   front of you presented to your own browser, whether it changed since
   last time, and one button to ask stellar.mesa.black whether its server
   sees the same key. Not published on addons.mozilla.org yet.
+- When a key given differs from the one a host serves, the site can look
+  for it in the public certificate logs, and say whether it is one of the
+  site's own keys or one no authority ever certified for that name.
 - A key can be checked by a link, `/verify?host=…&key=SHA256:…`, which is
   what the extension opens.
 - Pictures asked for by many at once are drawn once: under load the

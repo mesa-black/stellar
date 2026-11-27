@@ -58,6 +58,8 @@
           <p class="verdict" data-match="{{if .Verify.Match}}yes{{else if .Verify.Near}}near{{else}}no{{end}}" role="status">
             {{if .Verify.Match}}{{.T "verify.yes" .Host}}{{else if .Verify.Near}}{{.T "verify.near" .Host}}{{else}}{{.T "verify.no" .Host .Verify.Differ}}{{end}}
             <span class="given">{{.T "verify.given" .Verify.Name}} <span class="mono">{{.Verify.Fingerprint}}</span></span>
+            {{if .Verify.LogsURL}}<span class="logged">{{.T "verify.logs.offer"}} <a class="button" href="{{.Verify.LogsURL}}">{{.T "verify.logs.ask"}}</a></span>{{end}}
+            {{if .Verify.Logged}}<span class="logged" data-logged="{{.Verify.Logged}}">{{if eq .Verify.Logged "yes"}}{{.T "verify.logs.yes"}}{{else if eq .Verify.Logged "no"}}{{.T "verify.logs.no"}}{{else if eq .Verify.Logged "busy"}}{{.T "logs.busy"}}{{else}}{{.T "logs.failed"}}{{end}}</span>{{end}}
           </p>
           {{end}}
           {{if .VerifyError}}<p class="verdict" data-match="error" role="status">{{.VerifyError}}</p>{{end}}

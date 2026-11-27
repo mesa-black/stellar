@@ -3,10 +3,12 @@ package web
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -73,6 +75,13 @@ type verification struct {
 	// catalogue, for the script; Differ how many differ from the host's.
 	Gate   string
 	Differ int
+	// When the keys differ, the public logs can say whether the key given
+	// holds a certificate for this name all the same: a site may serve more
+	// than one key. LogsURL offers to ask them, and is empty when they
+	// cannot be read or were just asked; Logged is what they answered:
+	// "yes", "no", "busy" or "failed".
+	LogsURL string
+	Logged  string
 }
 
 // verifiedSign is one sign of the key given, and whether the key shown has
@@ -108,6 +117,44 @@ func (v *view) check(given stellar.Key) {
 	v.Verify, v.Signs = result, "/signs/"+signs().name
 }
 
+// inLogs settles, when asked, what two different keys mean. A site of some
+// size serves several keys, and every certificate a public authority issues
+// is written in public logs: a key given that is found there for this name
+// is one of the site's own. One that is not there is what the certificate
+// of somebody in the way looks like, since such a certificate is never
+// logged.
+//
+// Asking sends the name of the host to the service that reads the logs, so
+// nothing is asked until the visitor asks, as for the logs of the page.
+func (s *Server) inLogs(r *http.Request, v *view, given stellar.Key) {
+	if v.Verify.Match || s.Logs == nil {
+		return
+	}
+	if r.FormValue("logs") != "1" {
+		ask := url.Values{"host": {v.Host}, "key": {given.Fingerprint()}, "logs": {"1"}}
+		if v.LangParam != "" {
+			ask.Set("lang", v.LangParam)
+		}
+		v.Verify.LogsURL = "/verify?" + ask.Encode() + "#verify"
+		return
+	}
+	issuances, err := s.logged(r.Context(), v.Host)
+	switch {
+	case errors.Is(err, errLogsBusy):
+		v.Verify.Logged = "busy"
+	case err != nil:
+		v.Verify.Logged = "failed"
+	default:
+		v.Verify.Logged = "no"
+		for _, issued := range issuances {
+			if issued.Key == given.Digest {
+				v.Verify.Logged = "yes"
+				break
+			}
+		}
+	}
+}
+
 // verify answers the form under a host's gate: the page of that host, with
 // what came of comparing its key with the one pasted. A private key is
 // refused before anything reads it.
@@ -124,6 +171,7 @@ func (s *Server) verify(w http.ResponseWriter, r *http.Request) {
 			v.VerifyError, status = v.S("error.key"), http.StatusUnprocessableEntity
 		} else {
 			v.check(key)
+			s.inLogs(r, &v, key)
 		}
 	}
 	if v.Base != "" {

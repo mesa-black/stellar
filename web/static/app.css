@@ -181,6 +181,11 @@ button.quiet:hover { background: var(--panel); }
 .verdict[data-match="no"], .verdict[data-match="near"], .verdict[data-match="error"] { border-color: var(--bad); }
 .verdict[data-match="no"] strong, .verdict[data-match="near"] strong { color: var(--bad); }
 .verdict .given { display: block; margin-top: 6px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+/* What the public logs say of the key given, or the offer to ask them. */
+.verdict .logged { display: block; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.verdict .logged .button { display: table; margin-top: 8px; }
+.verdict .logged[data-logged="yes"] strong { color: var(--ok); }
+.verdict .logged[data-logged="no"] strong { color: var(--bad); }
 .verify details { border-top: 0; padding: 10px 0 0; font-size: 13px; }
 .verify details p { text-align: justify; hyphens: auto; -webkit-hyphens: auto; }
 .verify form button { margin-top: 8px; }
