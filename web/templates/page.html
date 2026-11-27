@@ -65,7 +65,7 @@
           {{if .VerifyError}}<p class="verdict" data-match="error" role="status">{{.VerifyError}}</p>{{end}}
           <details{{if .VerifyError}} open{{end}}>
             <summary>{{.T "verify.summary"}}</summary>
-            <p>{{.T "verify.why" .Host}}</p>
+            <p>{{.T "verify.why" .Host .Host}}</p>
             <form action="/verify#verify" method="post" data-private="{{.S "verify.private.kept"}}">
               <label for="given">{{.T "paste.label"}}</label>
               <textarea id="given" name="key" rows="4" spellcheck="false" required placeholder="SHA256:… / ssh-ed25519 AAAA… / -----BEGIN PUBLIC KEY-----"></textarea>

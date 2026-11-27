@@ -1002,7 +1002,7 @@ func TestVerify(t *testing.T) {
 
 	// Two different keys, and what the public logs say of the one given: a
 	// site that reads the logs offers to ask them, and asks only then.
-	if strings.Contains(post("example.com", other.Fingerprint()).Body.String(), "logs=1") {
+	if strings.Contains(post("example.com", other.Fingerprint()).Body.String(), `class="logged"`) {
 		t.Error("a site that does not read the logs offers to look in them")
 	}
 	logged := New(fakeLookup(&calls))
@@ -1014,7 +1014,7 @@ func TestVerify(t *testing.T) {
 	lh := logged.Handler()
 	ask := "/verify?host=example.com&key=" + url.QueryEscape(other.Fingerprint())
 	body = get(t, lh, ask).Body.String()
-	if !strings.Contains(body, "logs=1") || strings.Contains(body, "data-logged") || asked.Load() != 0 {
+	if !strings.Contains(body, `<span class="logged">`) || strings.Contains(body, "data-logged") || asked.Load() != 0 {
 		t.Errorf("the logs must be offered and not yet asked: asked %d times", asked.Load())
 	}
 	if body = get(t, lh, ask+"&logs=1").Body.String(); !strings.Contains(body, `data-logged="yes"`) || asked.Load() != 1 {
@@ -1024,7 +1024,7 @@ func TestVerify(t *testing.T) {
 	if body = get(t, lh, "/verify?host=example.com&logs=1&key="+url.QueryEscape(stranger.Fingerprint())).Body.String(); !strings.Contains(body, `data-logged="no"`) {
 		t.Error("a key the logs do not hold is not said to be missing")
 	}
-	if body = get(t, lh, "/verify?host=example.com&logs=1&key="+url.QueryEscape(served.Fingerprint())).Body.String(); strings.Contains(body, "data-logged") || strings.Contains(body, "logs=1") {
+	if body = get(t, lh, "/verify?host=example.com&logs=1&key="+url.QueryEscape(served.Fingerprint())).Body.String(); strings.Contains(body, `class="logged"`) {
 		t.Error("the logs are asked about a key that is the right one")
 	}
 
@@ -1074,6 +1074,35 @@ func TestPictureIsDrawnOnce(t *testing.T) {
 	// they would cost 24.
 	if all > 6*one+200*time.Millisecond {
 		t.Errorf("24 requests for one picture took %v, one drawing takes %v", all, one)
+	}
+}
+
+// A sentence given too few or too many values prints the accident in the
+// page ("%!s(MISSING)"), in the language it happens in and nowhere else. No
+// page may show one, whatever it shows.
+func TestNoSentenceIsBroken(t *testing.T) {
+	var calls atomic.Int32
+	s := New(fakeLookup(&calls))
+	s.BaseURL = "https://stellar.example"
+	s.RefreshSelf()
+	s.Logs = func(context.Context, string) ([]Issuance, error) { return nil, nil }
+	h := s.Handler()
+	other := stellar.Key{Digest: sha256.Sum256([]byte("example.org"))}
+	served := stellar.Key{Digest: sha256.Sum256([]byte("example.com"))}
+	for _, lang := range languages {
+		for _, path := range []string{
+			"/?", "/?host=example.com", "/?host=example.com&with=example.org", "/?host=example.com&with=example.com",
+			"/?host=example.com&logs=1", "/?host=down.example", "/?host=classical.example",
+			"/verify?host=example.com&key=" + url.QueryEscape(served.Fingerprint()),
+			"/verify?host=example.com&key=" + url.QueryEscape(other.Fingerprint()),
+			"/verify?host=example.com&logs=1&key=" + url.QueryEscape(other.Fingerprint()),
+			"/verify?host=example.com&key=nonsense",
+		} {
+			body := get(t, h, path+"&lang="+lang).Body.String()
+			if i := strings.Index(body, "%!"); i >= 0 {
+				t.Errorf("%s in %s: %q", path, lang, body[max(0, i-60):min(len(body), i+40)])
+			}
+		}
 	}
 }
 
